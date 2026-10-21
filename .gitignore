@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+dist/
+android/
+ios/
+.tools/
+.cache/
+test-results/
+playwright-report/
+*.log
+*.tsbuildinfo
+.env*.local

@@ -1,0 +1,39 @@
+{
+  "format": "ribbon-passport",
+  "version": 1,
+  "futureRoot": { "counter": 9123372036854000123, "decimal": 2.370 },
+  "collection": {
+    "pokemon": [
+      {
+        "id": "native-import-uuid",
+        "species": "metagross",
+        "nickname": "Archive",
+        "gender": "",
+        "shiny": false,
+        "currentgame": "bd",
+        "origingame": "emerald",
+        "shadow": false,
+        "gmax": false,
+        "currentlevel": 100,
+        "title": "None",
+        "titleText": "",
+        "ribbons": [],
+        "source": "manual",
+        "metLevel": 50,
+        "visits": [{ "id": "native-visit-uuid", "game": "emerald", "futureVisit": true }],
+        "futurePokemon": { "attachment": "data:image/png;base64,AA==", "notes": ["Keep me", null] }
+      }
+    ],
+    "teams": [],
+    "selectedID": "native-import-uuid",
+    "selectedTeamID": "",
+    "appearance": "automatic",
+    "updatedAt": 812345678.123456,
+    "storage": {
+      "boxes": [{ "id": "native-box-uuid", "name": "Archive box", "slots": ["native-import-uuid"], "wallpaper": { "futureWallpaper": true } }],
+      "partyIDs": []
+    },
+    "sourceNotes": { "fixture": "Native file-picker compatibility test" },
+    "futureCollection": { "retained": true }
+  }
+}

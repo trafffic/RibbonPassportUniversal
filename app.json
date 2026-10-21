@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Ribbon Passport",
+    "slug": "ribbon-passport-universal",
+    "version": "0.1.0",
+    "scheme": "ribbonpassport",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ie.ribbonpassport.universal"
+    },
+    "android": {
+      "package": "ie.ribbonpassport.universal"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-sqlite",
+      "expo-sharing"
+    ]
+  }
+}

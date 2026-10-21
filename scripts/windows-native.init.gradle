@@ -1,0 +1,13 @@
+// Local Windows CMake path-length mitigation. Does not patch dependencies.
+// Pass with Gradle -I <this-file>; RIBBON_NATIVE_CXX selects an ignored staging root.
+gradle.afterProject { project ->
+    def android = project.extensions.findByName('android')
+    def stagingRoot = System.getenv('RIBBON_NATIVE_CXX')
+    if (android != null && stagingRoot != null &&
+        (project.plugins.hasPlugin('com.android.application') || project.plugins.hasPlugin('com.android.library'))) {
+        android.externalNativeBuild.cmake.buildStagingDirectory = new File(stagingRoot, project.name)
+        android.defaultConfig.externalNativeBuild.cmake.arguments('-DCMAKE_OBJECT_PATH_MAX=220')
+        def ninja = System.getenv('RIBBON_NATIVE_NINJA')
+        if (ninja != null) android.defaultConfig.externalNativeBuild.cmake.arguments("-DCMAKE_MAKE_PROGRAM=${ninja}")
+    }
+}
