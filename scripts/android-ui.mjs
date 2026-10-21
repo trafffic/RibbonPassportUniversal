@@ -28,7 +28,13 @@ const swipe = async direction => {
 async function find(label, direction = 'down', buttonsOnly = false) {
   for (const way of [direction, direction === 'down' ? 'up' : 'down']) {
     for (let i = 0; i < 10; i++) {
-      const found = (await nodes()).find(n => n['content-desc'] === label || (!buttonsOnly && n.text === label));
+      const found = (await nodes()).find(n => {
+        if (n['content-desc'] !== label && (buttonsOnly || n.text !== label)) return false;
+        // Android can report offscreen scroll children with inverted/clipped bounds.
+        // Such nodes are in the hierarchy but cannot receive a tap.
+        const bounds = [...(n.bounds ?? '').matchAll(/\d+/g)].map(x => Number(x[0]));
+        return bounds.length === 4 && bounds[2] - bounds[0] >= 10 && bounds[3] - bounds[1] >= 10;
+      });
       if (found) return found;
       await swipe(way);
     }
@@ -44,8 +50,10 @@ async function tap(label, direction = 'down', allowText = false) {
   await adb('shell', 'input', 'tap', String(Math.round((values[0] + values[2]) / 2)), String(Math.round((values[1] + values[3]) / 2)));
   await pause(400);
   console.log(`Tapped ${label}`);
+  return node;
 }
 async function capture(name) {
+  await nodes();
   await adb('shell', 'screencap', '-p', '/sdcard/ribbon-screen.png');
   await adb('pull', '/sdcard/ribbon-screen.png', path.join(output, `${name}.png`));
   await fs.writeFile(path.join(output, `${name}.xml`), lastXML);

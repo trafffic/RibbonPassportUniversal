@@ -1,0 +1,18 @@
+{
+  "mode": "release with generated debug signing key (local test only)",
+  "architecture": "x86_64",
+  "expo": "58.0.16",
+  "reactNative": "0.88.0",
+  "sdkPlatform": "37.0",
+  "emulatorApi": 36,
+  "apkBytes": 37054604,
+  "apkSha256": "7576b11f769cefcc456c834d28509c2fca100eed28536c7a66fdb552ffbfd2f9",
+  "gradle": "9.4.1",
+  "jdk": "21",
+  "buildResult": "BUILD SUCCESSFUL (final import-navigation fix)",
+  "nativeTooling": "scripts/build-android-windows.ps1 + scripts/windows-native.init.gradle",
+  "ninja": "1.13.2",
+  "ninjaZipSha256": "07fc8261b42b20e71d1720b39068c2e14ffcee6396b76fb7a795fb460b78dc65",
+  "incrementalBuild": "BUILD SUCCESSFUL in 45s",
+  "installedApkChecksumVerified": true
+}

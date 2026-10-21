@@ -1,16 +1,49 @@
 # Validation — 21 October 2026
 
+## Selected design and demo defaults
+
+The Classic PC → Passport Studio design prototype was checked at desktop, tablet and 390/320px phone widths for preview navigation, retained Pokémon selection, return to storage, the source passport tabs/filters, and creating a normally named box. Its sample counts, Memory Ribbon presentation, recorded visits and transfer assessment are projected from the existing domain model. This is design evidence, not an implementation claim for the unported original features listed in [UI-PARITY.md](UI-PARITY.md).
+
+Fresh demo collections now contain only Box 01. No stored/imported box is removed or renamed. Strict typecheck and 40 tests passed; the production PC/passport flow was rerun across the four browser viewports. Native builds from earlier sections predate this seed-only change.
+
+## Original sprite restoration
+
+The replacement portrait set was removed at the user's request. The current UI uses the original twelve bundled iPhone sprites, enlarged without changing their pixels or colours. Sprite frames constrain both axes and use containment in PC slots, quick previews and passports.
+
+- Strict typecheck and all **40 domain/backup/storage/artwork tests** passed again. The artwork regression checks every original sprite's visible RGBA pixel counts against its prepared rendering copy.
+- All **24 Chromium interaction tests** passed again across desktop, tablet and both phone widths. The sample PC now also checks every occupied slot's loaded image bounds in both axes.
+- Production web export/offline precache passed. The `original-sprites-*` captures in [web evidence](validation/web/) show this revision; desktop and phone PC, preview and passport captures were visually inspected.
+- The rebuilt release-mode Android test APK passed native sample import, PC selection, preview, passport and restart checks at **1080×2400 / density 420** and **1600×2560 / density 240** on the Android 36 x86_64 emulator. The five `original-sprites-*` native PNG captures were visually inspected: whole silhouettes, correct proportions and clearance inside slots. See [native results](validation/android/original-sprites-result.json) and [exact APK metadata/checksum](validation/android/original-sprites-build.json). ZIP inspection confirmed zero replacement portrait assets, including stale generated resources. This remains an emulator/debug-key local test APK; iOS and physical devices were not tested for this revision.
+
+The slice-two screenshots and native flows described below predate this artwork correction and are retained as historical feature-validation evidence.
+
 ## Verified
 
 - TypeScript strict typecheck passed.
-- **31 domain/backup/storage tests passed** with no failures or skips. Cases are ported from the relevant Swift reference tests and supplemented with lossless-backup and persistence regressions.
-- **16 Chromium interaction tests passed**: four flows at 1440×1000 desktop, 820×1180 tablet, 390×844 phone, and 320×740 small-phone viewports. Coverage includes PC/box selection, full passport, earning-game selection, record/remove/undo, Journey, service-worker offline reload/deep links, native-app-format backup import preview, original-format download preservation, rejected malformed import, injected storage failure, and conflicting offline windows with persisted explicit resolution.
+- **40 domain/backup/storage/artwork tests passed** with no failures or skips. Cases cover Swift-derived eligibility/transfer rules, Memory Ribbons, lossless backups, persistence, stable identities, add/edit commands, box/party swaps, undo, required Swift export fields, guide layout extensions and complete sprite silhouettes.
+- **24 Chromium interaction tests passed**: six flows at 1440×1000 desktop, 820×1180 tablet, 390×844 phone, and 320×740 small-phone viewports. Coverage includes building a three-Pokémon collection from empty, editors, box creation/rename/wallpaper, cross-box moves/swaps/undo, search, empty-collection review/undo, PC selection, passports, ribbons and Journey, offline reopen, both backup exports/import, save failures, and conflicting offline windows with persisted resolution. Individual images are checked against both slot dimensions to catch cropping.
 - Official Expo Doctor: **20/20 checks passed**. `expo install --check`: dependencies up to date.
 - Production web export and offline precache generation passed. Desktop/narrow-layout captures were visually inspected; the narrow review caught and corrected clipping that a document-width-only assertion missed. Tests now check individual control bounds as well.
 
 Retained browser captures are in [validation/web](validation/web/). Playwright traces/reports are generated in ignored `test-results/` and `playwright-report/` folders on failure.
 
 ## Native validation
+
+Second-slice results appear first. Earlier first-slice evidence is retained below.
+
+### Second-slice phone
+
+The final second-slice APK passed the native Android 36 x86_64 **1080×2400, density 420 phone configuration**. The complete flow creates an empty collection through the review UI, selects species and individual games in native editors, adds a Pokémon, creates a second box, moves to slot 30, undoes/repeats the move, selects a wallpaper, edits nickname/shiny, records Alert Ribbon in Alpha Sapphire, views its Journey, force-stops/reopens with Wi-Fi/mobile data disabled, and opens the original-format share sheet. See [phone results](validation/android/slice-two-result.json) and the `slice-two-*` PNG/XML captures.
+
+Native validation caught and corrected wallpaper thumbnails inheriting the high-resolution raster’s height. The corrected picker uses bounded aspect-ratio cards and now has a native size regression assertion. The game editor also excludes aggregate catalogue headings, so earning locations use individual games. The test selector ignores inverted bounds that Android reports for untappable offscreen scroll children. Final phone captures were visually inspected for typography, whole sprite silhouettes, shiny/game emblems, wallpaper rendering and editor layout.
+
+The APK is bundled in release mode with the generated debug key for local emulator testing; [build metadata and checksum](validation/android/slice-two-build.json) identify the exact artifact. It is not a store release or a physical ARM-device validation.
+
+### Second-slice tablet and native export
+
+The same final APK passed at **1600×2560, density 240** on the Android emulator: restored PC/quick preview, full passport and Journey earning history. The exported JSON was read through adb’s raw channel and checked for the Pokémon’s stable ID, nickname/shiny, level/met level, Alpha Sapphire earning location, exact second-box slot 30, Beach wallpaper, and the required Swift record/collection/wallpaper fields. See [tablet/export results](validation/android/slice-two-tablet-result.json). The native phone and tablet captures were visually inspected. This is a tablet display configuration of the emulator, not a physical Android tablet.
+
+### First-slice evidence
 
 Android tooling was absent at the start. Google’s command-line tools, SDK platform/build tools, NDK/CMake, and a Google APIs Android 36 x86_64 emulator were provisioned locally. The emulator boots using WHPX.
 
@@ -32,4 +65,4 @@ iOS/iPad native validation has **not run**: this Windows session has no connecte
 
 ## Scope limits
 
-The working slice is local collection selection, a full passport, owned/planned ribbons, earning history, Journey, transactional local persistence, undo, and backup import/export. Browser responsiveness is reported separately from native results. There is no authentication, remote sync, publication, public guide service, community collection backend, or widget implementation. Rich unsupported backup fields are retained without presenting them as editable features. See [remaining integration work](ARCHITECTURE.md) and [backup limits](BACKUPS.md).
+The working slices include collection creation/editing and organisation, iPhone-style PC artwork, full passports, owned/planned ribbons, earning history, Journey, transactional local persistence, undo, and backup import/export. Browser responsiveness is reported separately from native results. There is no authentication, remote sync, publication, public guide service, community collection backend, or widget implementation. Rich unsupported backup fields are retained without presenting them as editable features. See [remaining integration work](ARCHITECTURE.md), [second-slice notes](SLICE-TWO.md), and [backup limits](BACKUPS.md).

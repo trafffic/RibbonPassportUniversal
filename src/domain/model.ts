@@ -21,7 +21,10 @@ export interface Pokemon {
   ball?: string;
 }
 export interface Visit { id: string; game: string }
-export interface Box { id: string; name: string; slots: (string | null)[] }
+export interface Box {
+  id: string; name: string; slots: (string | null)[];
+  wallpaper?: { sunMoon?: string; tint?: string; strength?: number };
+}
 export interface RecordVersion {
   revision: string;
   parentRevision: string | null;
@@ -30,6 +33,8 @@ export interface PassportRecord {
   id: string;
   version: RecordVersion;
   sourceIndex: number;
+  // New records have no source row. Their complete initial projection is retained here.
+  created?: boolean;
   pokemon: Pokemon;
   // Only explicitly changed fields are written over the original backup.
   changes: Record<string, unknown>;
@@ -40,8 +45,8 @@ export interface Operation {
   parentRevision: string;
   revision: string;
   at: string;
-  kind: 'record-ribbon' | 'remove-ribbon' | 'undo';
-  award: string;
+  kind: 'record-ribbon' | 'remove-ribbon' | 'undo' | 'add-pokemon' | 'edit-pokemon' | 'create-box' | 'edit-box' | 'move-pokemon';
+  award?: string;
   game?: string;
 }
 export interface Collection {
@@ -55,4 +60,5 @@ export interface Collection {
   selectedID: string;
   selectedBoxID: string;
   operations: Operation[];
+  layoutChanged?: boolean;
 }

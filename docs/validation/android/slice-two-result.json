@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-21T19:00:34.178Z",
+  "packageID": "ie.ribbonpassport.universal",
+  "passed": [
+    "new empty collection",
+    "native species/game pickers",
+    "add Pokémon",
+    "edit name/shiny",
+    "create box",
+    "move across boxes",
+    "undo move",
+    "wallpaper",
+    "record ribbon",
+    "Journey",
+    "offline SQLite reopen",
+    "original-format native share sheet"
+  ]
+}

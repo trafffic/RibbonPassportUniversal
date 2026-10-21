@@ -34,7 +34,7 @@ export function RibbonBoard({ pokemon: p, planner = false }: { pokemon: Pokemon;
       </> : <>
         {transfer.lastChance.includes(selected) && <Tag>Last chance before leaving this generation</Tag>}
         <PixelText style={ui.label}>EARNED IN</PixelText>
-        <View style={[ui.row, { gap: 8 }]}>{options[selected]?.map(game => <Button key={game} primary={chosenGame === game} onPress={() => setChosenGame(game)}>{gameName(game)}</Button>)}</View>
+        <View style={[ui.row, { gap: 8 }]}>{options[selected]?.map(game => <Button key={game} art={`game-${game}-light`} primary={chosenGame === game} onPress={() => setChosenGame(game)}>{gameName(game)}</Button>)}</View>
         <Button primary disabled={!chosenGame || state.busy} label={`Record ${awardName(selected)}`} onPress={async () => { await state.change(p.id, selected, chosenGame); setChosenGame(''); }}>Record ribbon</Button>
       </>}
     </View>;

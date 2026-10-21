@@ -23,6 +23,5 @@ export function createSample(): Collection {
     }));
     record.changes = { visits: p.visits, earnedGenerations: p.earnedGenerations };
   }
-  collection.boxes.push({ id: 'sample-box-2', name: 'Next adventure', slots: Array(30).fill(null) });
   return collection;
 }

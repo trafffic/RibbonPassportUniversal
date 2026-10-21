@@ -1,0 +1,15 @@
+{
+  "platform": "Android",
+  "display": {
+    "width": 1600,
+    "height": 2560,
+    "densityDpi": 240
+  },
+  "checks": [
+    "same native APK at tablet display configuration",
+    "restored imported collection",
+    "PC selection and quick preview",
+    "passport and ribbon planning touch controls"
+  ],
+  "completedAt": "2026-10-21T15:02:13.168Z"
+}

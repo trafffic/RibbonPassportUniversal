@@ -6,7 +6,7 @@ export const colors = {
 };
 export const ui = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.paper },
-  content: { width: '100%', maxWidth: 1400, alignSelf: 'center', padding: 24, gap: 24 },
+  content: { width: '100%', maxWidth: 1240, alignSelf: 'center', padding: 24, gap: 22 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
   panel: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, padding: 22, gap: 18 },

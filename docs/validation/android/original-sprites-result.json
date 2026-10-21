@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-21T19:17:33.694Z",
+  "platform": "Android 36 x86_64 emulator",
+  "displays": [
+    "1080×2400 / density 420",
+    "1600×2560 / density 240"
+  ],
+  "passed": [
+    "original bundled sample import through native picker",
+    "PC selection",
+    "quick preview",
+    "full passport",
+    "restored selected Pokémon after restart"
+  ],
+  "note": "PNG captures require visual inspection for whole silhouettes and correct proportions."
+}

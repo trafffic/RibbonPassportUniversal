@@ -7,11 +7,29 @@ test('PC selection, passport, ribbon record/undo, Journey, offline reopen and ex
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Select Sparky' })).toBeVisible();
   await expect(page.getByText('QUICK PREVIEW', { exact: true })).toBeVisible();
+  // Check the original sample silhouettes in the real rectangular PC slots.
+  // A width-only bound missed tall-sprite clipping in the earlier layout.
+  for (let i = 1; i <= 6; i++) {
+    const slot = page.getByTestId(`pc-slot-${i}`);
+    const outer = (await slot.boundingBox())!;
+    const images = slot.locator('img');
+    expect(await images.count()).toBeGreaterThan(0);
+    for (const image of await images.all()) {
+      await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+      const inner = (await image.boundingBox())!;
+      expect(inner.x).toBeGreaterThanOrEqual(outer.x);
+      expect(inner.y).toBeGreaterThanOrEqual(outer.y);
+      expect(inner.x + inner.width).toBeLessThanOrEqual(outer.x + outer.width);
+      expect(inner.y + inner.height).toBeLessThanOrEqual(outer.y + outer.height);
+    }
+  }
   for (const button of await page.getByRole('button').all()) {
     const bounds = await button.boundingBox();
     expect(bounds && bounds.x >= -1 && bounds.x + bounds.width <= page.viewportSize()!.width + 1).toBe(true);
   }
-  await page.getByRole('button', { name: 'Next adventure', exact: true }).click();
+  await page.getByRole('button', { name: '+ Create box', exact: true }).click();
+  await page.getByRole('button', { name: 'Create box', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Box 02', exact: true })).toBeVisible();
   await expect(page.getByText('0 / 30', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Box 01', exact: true }).click();
   await page.getByRole('button', { name: 'Select Gardevoir' }).click();

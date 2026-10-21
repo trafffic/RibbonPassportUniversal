@@ -12,7 +12,7 @@ export function Journey({ pokemon: p }: { pokemon: Pokemon }) {
     {visits.length ? visits.map((visit, i) => {
       const awards = sortAwards(p.ribbons.filter(id => p.earnedGames?.[id] === visit.game));
       return <View key={visit.game} style={{ borderLeftWidth: 3, borderColor: colors.border, paddingLeft: 20, paddingBottom: 20, gap: 12 }}>
-        <View style={ui.between}><View style={ui.row}><PixelText style={{ fontSize: 22 }}>{String(i + 1).padStart(2, '0')} / {gameName(visit.game)}</PixelText><Tag>{`Gen ${generation(visit.game) || '?'}`}</Tag></View><View style={ui.row}>{visit.game === p.origingame && <Tag>Origin</Tag>}{visit.game === p.currentgame && <Tag>Current</Tag>}</View></View>
+        <View style={ui.between}><View style={ui.row}><Art name={`game-${visit.game}-light`} size={36} /><PixelText style={{ fontSize: 22 }}>{String(i + 1).padStart(2, '0')} / {gameName(visit.game)}</PixelText><Tag>{`Gen ${generation(visit.game) || '?'}`}</Tag></View><View style={ui.row}>{visit.game === p.origingame && <Tag>Origin</Tag>}{visit.game === p.currentgame && <Tag>Current</Tag>}</View></View>
         {awards.length ? awards.map(id => <View key={id} style={ui.row}><Art name={`award-${id}`} size={24} /><PixelText>{awardName(id)}</PixelText></View>) : <PixelText style={{ fontSize: 15, color: colors.muted }}>No ribbon has a confirmed earning location here.</PixelText>}
       </View>;
     }) : <PixelText>No visits recorded.</PixelText>}

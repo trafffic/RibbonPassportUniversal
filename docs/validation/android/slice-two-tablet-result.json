@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-21T19:01:20.457Z",
+  "platform": "Android 36 x86_64 emulator",
+  "display": {
+    "width": 1600,
+    "height": 2560,
+    "density": 240
+  },
+  "passed": [
+    "same APK, tablet configuration",
+    "persisted second box and wallpaper",
+    "PC and quick preview",
+    "passport and earning history",
+    "native exported JSON includes required Swift fields, stable identity, exact slot and earning location"
+  ]
+}

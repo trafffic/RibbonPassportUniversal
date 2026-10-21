@@ -2,6 +2,8 @@
 
 Inspected reference commit: `3d16bd7042ce846a60474237b6a84526fc677d11`. No applicable `AGENTS.md` was present in the workspace, reference repository, or inspected ancestor directories.
 
+This section records the initial port audit. [Slice two](SLICE-TWO.md) adds collection editors/organisation and the reference PC styling. Following the user's artwork preference, it retains the twelve original bundled Pokémon sprites with corrected scaling and containment; broader species artwork coverage remains open.
+
 ## Reuse and parity
 
 Copied unchanged: `catalog.json`, `catalog-order.json`, `ribbon-rules.json`, `demo-backup.json`, `export-compatibility.json`, `art-colours.json`, bundled artwork/sprites, Sun/Moon wallpapers, Pixelify Sans, app icon, licence notices and source credits. An explicit static artwork manifest makes referenced images available to Metro offline. The source only bundles a small set of Pokémon sprites; unsupported imported species display a labelled `?` instead of fetching images or substituting another species. Full species artwork coverage is remaining work.

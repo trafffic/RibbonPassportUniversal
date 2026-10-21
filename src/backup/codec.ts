@@ -1,5 +1,6 @@
 import { parse, stringify, isLosslessNumber } from 'lossless-json';
 import type { Box, Collection, PassportRecord, Pokemon, Visit } from '../domain/model';
+import { editableFields } from '../domain/organisation';
 
 type Obj = Record<string, unknown>;
 export const object = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.isArray(v) && !isLosslessNumber(v);
@@ -46,10 +47,11 @@ function requireUniqueIDs(entries: Obj[], name: string) {
 function projectBoxes(root: Obj, kind: Collection['source']['kind'], records: PassportRecord[], collectionID: string): { boxes: Box[]; partyIDs: string[] } {
   const container = kind === 'app' && object(root.collection) ? root.collection : root;
   const storage = object(container.storage) ? container.storage : undefined;
+  const wallpaper = (raw: unknown): Box['wallpaper'] => object(raw) ? { ...(typeof raw.sunMoon === 'string' ? { sunMoon: raw.sunMoon } : {}), ...(typeof raw.tint === 'string' ? { tint: raw.tint } : {}), ...(numeric(raw.strength) !== undefined ? { strength: numeric(raw.strength) } : {}) } : undefined;
   let boxes: Box[] = [];
   let partyIDs: string[] = [];
   if (Array.isArray(storage?.boxes)) {
-    boxes = storage.boxes.flatMap((b, i) => object(b) ? [{ id: textValue(b.id, `${collectionID}-box-${i}`), name: textValue(b.name, `Box ${i + 1}`), slots: Array.isArray(b.slots) ? b.slots.map(s => typeof s === 'string' ? s : null) : [] }] : []);
+    boxes = storage.boxes.flatMap((b, i) => object(b) ? [{ id: textValue(b.id, `${collectionID}-box-${i}`), name: textValue(b.name, `Box ${i + 1}`), slots: Array.isArray(b.slots) ? b.slots.map(s => typeof s === 'string' ? s : null) : [], ...(object(b.wallpaper) ? { wallpaper: wallpaper(b.wallpaper) } : {}) }] : []);
     partyIDs = stringArray(storage.partyIDs) ? storage.partyIDs : [];
   } else if (kind === 'guide' && stringArray(root.boxes)) {
     boxes = root.boxes.map((name, i) => ({ id: `${collectionID}-box-${i}`, name, slots: [] }));
@@ -57,6 +59,12 @@ function projectBoxes(root: Obj, kind: Collection['source']['kind'], records: Pa
       const box = object(raw) ? numeric(raw.box) : undefined;
       if (box !== undefined && boxes[box]) boxes[box]!.slots.push(records[i]!.id);
     });
+  }
+  if (kind === 'guide' && object(root.ribbonPassportLayout) && numeric(root.ribbonPassportLayout.version) === 1) {
+    const layout = root.ribbonPassportLayout;
+    if (!Array.isArray(layout.boxes) || !layout.boxes.every(object) || !stringArray(layout.partyIDs)) throw new Error('Invalid preserved guide layout.');
+    boxes = layout.boxes.map(b => ({ id: textValue(b.id), name: textValue(b.name), slots: Array.isArray(b.slots) ? b.slots.map(id => typeof id === 'string' ? id : null) : [], ...(object(b.wallpaper) ? { wallpaper: wallpaper(b.wallpaper) } : {}) }));
+    partyIDs = layout.partyIDs;
   }
   if (!boxes.length) boxes.push({ id: `${collectionID}-box-0`, name: 'Box 01', slots: [] });
   // Reconcile only the display projection. The source layout is retained verbatim.
@@ -101,8 +109,10 @@ export function importBackup(text: string, collectionID: string, revision: strin
     if (!Array.isArray(container.teams) || !container.teams.every(object)) throw new Error('The app backup has an invalid team list.');
     requireUniqueIDs(container.teams, 'team');
   }
+  const guideIDs = kind === 'guide' && object(root.ribbonPassportLayout) && numeric(root.ribbonPassportLayout.version) === 1 ? root.ribbonPassportLayout.recordIDs : undefined;
+  if (guideIDs !== undefined && (!stringArray(guideIDs) || guideIDs.length !== entries.length || new Set(guideIDs).size !== guideIDs.length || guideIDs.some(id => !id))) throw new Error('Invalid preserved guide identities.');
   const records = entries.map((entry, sourceIndex) => {
-    const id = kind === 'guide' ? `${collectionID}-pokemon-${sourceIndex}` : entry.id as string;
+    const id = kind === 'guide' ? (guideIDs as string[] | undefined)?.[sourceIndex] ?? `${collectionID}-pokemon-${sourceIndex}` : entry.id as string;
     return { id, sourceIndex, version: { revision: `${revision}:${sourceIndex}`, parentRevision: null }, pokemon: normalize(entry, id), changes: {} };
   });
   const { boxes, partyIDs } = projectBoxes(root, kind, records, collectionID);
@@ -118,22 +128,43 @@ export function validateCollection(value: Collection): Collection {
   const root = parseJSON(value.source.text);
   if (!object(root)) throw new Error('Invalid preserved backup.');
   const entries = entriesFor(value.source.kind, root);
-  const allowed = new Set(['ribbons', 'earnedGames', 'earnedGenerations', 'visits', 'title', 'titleText']);
+  const allowed = new Set<string>(['ribbons', 'earnedGames', 'earnedGenerations', 'visits', 'title', 'titleText', ...editableFields]);
   const indexes = new Set<number>();
   for (const record of value.records) {
-    const entry = entries[record.sourceIndex];
-    if (!object(entry) || indexes.has(record.sourceIndex) || !object(record.changes) || !record.version || typeof record.version.revision !== 'string' || Object.keys(record.changes).some(k => !allowed.has(k))) throw new Error('Invalid preserved record or revision.');
-    indexes.add(record.sourceIndex);
-    record.pokemon = normalize({ ...entry, ...record.changes }, record.id);
+    const entry = record.created && record.sourceIndex === -1 ? record.pokemon as unknown as Obj : entries[record.sourceIndex];
+    if (!object(entry) || (!record.created && (!Number.isInteger(record.sourceIndex) || record.sourceIndex < 0 || indexes.has(record.sourceIndex))) || !object(record.changes) || !record.version || typeof record.version.revision !== 'string' || Object.keys(record.changes).some(k => !allowed.has(k))) throw new Error('Invalid preserved record or revision.');
+    if (!record.created) indexes.add(record.sourceIndex);
+    const merged = { ...entry, ...record.changes };
+    if ('metLevel' in record.changes) delete merged.metlevel;
+    if ('sizeScale' in record.changes) delete merged.scale;
+    record.pokemon = normalize(merged, record.id);
   }
   if (indexes.size !== entries.length) throw new Error('The universal backup is missing records.');
+  requireUniqueIDs(value.boxes as unknown as Obj[], 'box');
+  const positions = [...value.partyIDs, ...value.boxes.flatMap(b => {
+    if (typeof b.name !== 'string' || !Array.isArray(b.slots) || b.slots.length !== 30 || b.slots.some(id => id !== null && typeof id !== 'string')) throw new Error('Invalid box layout.');
+    return b.slots.filter((id): id is string => id !== null);
+  })];
+  const ids = new Set(value.records.map(r => r.id));
+  if (value.partyIDs.length > 6 || positions.length !== ids.size || new Set(positions).size !== positions.length || positions.some(id => !ids.has(id))) throw new Error('Invalid or incomplete storage positions.');
   return value;
 }
 export function exportSource(collection: Collection): string {
-  if (collection.records.every(r => !Object.keys(r.changes).length)) return collection.source.text;
+  if (!collection.layoutChanged && collection.records.every(r => !r.created && !Object.keys(r.changes).length)) return collection.source.text;
   const root = parseJSON(collection.source.text) as Obj;
   const entries = entriesFor(collection.source.kind, root);
   for (const record of collection.records) {
+    if (record.created) {
+      const entry: Obj = { ...record.pokemon, source: 'manual' };
+      if (collection.source.kind === 'guide') {
+        entry.shiny = record.pokemon.shiny ? 'star' : '';
+        if (record.pokemon.metLevel !== undefined) entry.metlevel = record.pokemon.metLevel;
+        if (record.pokemon.sizeScale !== undefined) entry.scale = record.pokemon.sizeScale;
+        delete entry.metLevel; delete entry.sizeScale;
+      }
+      entries.push(entry);
+      continue;
+    }
     const entry = entries[record.sourceIndex] as Obj;
     const originalRibbons = entry.ribbons as string[];
     const originalProjection = normalize(entry, record.id);
@@ -151,7 +182,48 @@ export function exportSource(collection: Collection): string {
       } else if (key === 'visits' && Array.isArray(val)) {
         const original = Array.isArray(entry.visits) ? entry.visits : [];
         entry.visits = [...original, ...val.filter(v => !original.some(old => object(old) && old.game === v.game))];
-      } else entry[key] = val;
+      } else if (collection.source.kind === 'guide' && (key === 'metLevel' || key === 'sizeScale')) {
+        const alias = key === 'metLevel' ? 'metlevel' : 'scale';
+        if (val === null) { delete entry[key]; delete entry[alias]; }
+        else { entry[alias] = typeof entry[alias] === 'string' ? String(val) : val; if (key in entry) entry[key] = val; }
+      } else if (key === 'shiny' && collection.source.kind === 'guide') entry.shiny = val ? 'star' : '';
+      else if (key === 'currentlevel' && typeof entry.currentlevel === 'string') entry.currentlevel = String(val);
+      else if (val === null && (key === 'metLevel' || key === 'sizeScale')) { delete entry[key]; delete entry[key === 'metLevel' ? 'metlevel' : 'scale']; }
+      else entry[key] = val;
+    }
+  }
+  if (collection.layoutChanged) {
+    if (collection.source.kind === 'guide') {
+      const existing = root.ribbonPassportLayout;
+      if (existing !== undefined && (!object(existing) || numeric(existing.version) !== 1)) throw new Error('This backup already has an unsupported ribbonPassportLayout field. Export a universal backup to preserve both.');
+      if (root.boxes !== undefined && !stringArray(root.boxes)) throw new Error('This guide backup has unsupported box entries. Export a universal backup to preserve them.');
+      root.boxes = collection.boxes.map(b => b.name);
+      const sourceOrder = [...collection.records.filter(r => !r.created).sort((a, b) => a.sourceIndex - b.sourceIndex), ...collection.records.filter(r => r.created)];
+      sourceOrder.forEach((r, i) => { (entries[i] as Obj).box = Math.max(0, collection.boxes.findIndex(b => b.slots.includes(r.id))); });
+      const oldBoxes = object(existing) && Array.isArray(existing.boxes) ? existing.boxes : [];
+      const boxes = collection.boxes.map(box => {
+        const old = oldBoxes.find(b => object(b) && b.id === box.id);
+        return { ...(object(old) ? old : {}), ...box, ...(box.wallpaper ? { wallpaper: { ...(object(old) && object(old.wallpaper) ? old.wallpaper : {}), ...box.wallpaper } } : {}) };
+      });
+      root.ribbonPassportLayout = { ...(object(existing) ? existing : {}), version: 1, recordIDs: sourceOrder.map(r => r.id), boxes, partyIDs: collection.partyIDs };
+    } else {
+      const container = collection.source.kind === 'app' ? root.collection as Obj : root;
+      const storage = object(container.storage) ? container.storage : {};
+      const originals = Array.isArray(storage.boxes) ? storage.boxes : [];
+      const projected = projectBoxes(root, collection.source.kind, collection.records.filter(r => !r.created), collection.id);
+      const remaining = new Map(collection.boxes.map(b => [b.id, b]));
+      const updated = originals.map(raw => {
+        if (!object(raw) || typeof raw.id !== 'string' || !remaining.has(raw.id)) return raw;
+        const box = remaining.get(raw.id)!; remaining.delete(raw.id);
+        const previous = projected.boxes.find(b => b.id === box.id);
+        const next: Obj = { ...raw };
+        if (box.name !== previous?.name) next.name = box.name;
+        if (JSON.stringify(box.slots) !== JSON.stringify(previous?.slots)) next.slots = [...box.slots, ...(Array.isArray(raw.slots) ? raw.slots.slice(30) : [])];
+        if (JSON.stringify(box.wallpaper) !== JSON.stringify(previous?.wallpaper)) next.wallpaper = { design: 'classic', strength: 0.65, ...(object(raw.wallpaper) ? raw.wallpaper : {}), ...box.wallpaper };
+        return next;
+      });
+      const added = [...remaining.values()].map(box => ({ ...box, ...(box.wallpaper ? { wallpaper: { design: 'classic', strength: 0.65, ...box.wallpaper } } : {}) }));
+      container.storage = { ...storage, boxes: [...updated, ...added], partyIDs: JSON.stringify(collection.partyIDs) === JSON.stringify(projected.partyIDs) ? storage.partyIDs ?? [] : collection.partyIDs };
     }
   }
   return serializeJSON(root);

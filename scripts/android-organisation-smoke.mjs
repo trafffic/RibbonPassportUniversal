@@ -1,0 +1,101 @@
+// Local emulator only. Creates a new collection through the reviewable UI; previous data is archived.
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { adb, pause, nodes, find, tap, capture, output } from './android-ui.mjs';
+const packageID = 'ie.ribbonpassport.universal';
+async function input(label, text) {
+  const field = await tap(label);
+  await adb('shell', 'input', 'keyevent', '123');
+  const count = Math.min(128, (field.text?.length ?? 0) + 1);
+  await adb('shell', 'input', 'keyevent', ...Array(count).fill('67'));
+  await adb('shell', 'input', 'text', text.replaceAll(' ', '%s'));
+  await pause(250);
+}
+async function hideKeyboard() {
+  const state = await adb('shell', 'dumpsys', 'input_method');
+  if (/mInputShown=true|mIsInputViewShown=true/.test(state)) { await adb('shell', 'input', 'keyevent', '4'); await pause(250); }
+}
+async function choose(label, value) {
+  const choices = await nodes();
+  const control = choices.find(n => n['content-desc']?.startsWith(`${label}:`));
+  if (!control) throw new Error(`Picker not visible: ${label}`);
+  await tap(control['content-desc']);
+  await input(`Search ${label.toLowerCase()}`, value);
+  await hideKeyboard();
+  const options = await nodes();
+  const result = options.find(n => n['content-desc'] === `Choose ${value}`) ?? options.find(n => n['content-desc']?.startsWith('Choose ') && n['content-desc'].toLowerCase().includes(value.toLowerCase()));
+  if (!result) throw new Error(`Choice not visible: ${value}`);
+  await tap(result['content-desc']);
+  // Wait for the controlled picker to reflect the choice before proceeding/capturing.
+  const selectedLabel = `${label}: ${result['content-desc'].slice('Choose '.length)}`;
+  const after = await nodes();
+  if (!after.some(n => n['content-desc'] === selectedLabel) && after.some(n => n['content-desc'] === result['content-desc'])) await tap(result['content-desc']);
+  await find(selectedLabel);
+}
+await adb('shell', 'am', 'force-stop', packageID);
+await adb('shell', 'monkey', '-p', packageID, '1'); await pause(1500);
+await tap('Collection', 'up');
+await tap('Start a new collection');
+await tap('Create empty collection');
+await tap('+ Add Pokémon', 'up');
+await choose('Species / form', 'Metagross');
+await input('Nickname', 'Atlas');
+await input('Level', '100');
+await input('Met level', '50');
+await hideKeyboard();
+await find('Origin game: Not set');
+await choose('Origin game', 'Alpha Sapphire');
+await find('Current game: Not set');
+await choose('Current game', 'Alpha Sapphire');
+await capture('slice-two-01-editor');
+await tap('Add to box');
+await find('Select Atlas', 'up');
+await capture('slice-two-02-pc');
+await tap('+ Create box');
+await input('Box name', 'Travellers'); await hideKeyboard();
+await tap('Create box');
+await tap('Move Pokémon');
+await tap('Move to empty slot 30');
+await find('Select Atlas');
+await tap('Undo last change');
+await tap('Box 01', 'up');
+await find('Select Atlas');
+await tap('Move Pokémon');
+await tap('Travellers');
+await tap('Move to empty slot 30');
+await tap('Box settings');
+const firstWallpaper = await find('Wallpaper Forest');
+const bounds = [...firstWallpaper.bounds.matchAll(/\d+/g)].map(x => Number(x[0]));
+assert.ok(bounds[3] - bounds[1] <= (bounds[2] - bounds[0]) * 1.8, 'Wallpaper thumbnails must fit their preview card, not use intrinsic raster height');
+await capture('slice-two-09-wallpaper-picker');
+await tap('Wallpaper Beach');
+await tap('Save box');
+await tap('Edit Pokémon');
+await input('Nickname', 'Atlas Prime'); await hideKeyboard();
+await tap('Shiny: off');
+await tap('Save Pokémon');
+await find('Select Atlas Prime', 'up');
+await capture('slice-two-03-moved');
+await tap('Open full passport →');
+await tap('Plan next ribbon');
+await tap('Details for Alert Ribbon');
+await tap('Alpha Sapphire');
+await tap('Record Alert Ribbon');
+await tap('Journey', 'up');
+await find('Alert Ribbon');
+await capture('slice-two-04-journey');
+await adb('shell', 'svc', 'wifi', 'disable'); await adb('shell', 'svc', 'data', 'disable');
+await adb('shell', 'am', 'force-stop', packageID);
+await adb('shell', 'monkey', '-p', packageID, '1'); await pause(1500);
+await find('Select Atlas Prime', 'up');
+await tap('Open full passport →'); await tap('Journey');
+await find('Alert Ribbon'); await capture('slice-two-05-offline');
+await tap('Import / export', 'up');
+await tap('Export original format'); await pause(800);
+assert.ok((await nodes()).some(n => /sharing|share|Bluetooth|Quick Share|Nearby/i.test(n.text ?? '')));
+await capture('slice-two-06-export');
+await adb('shell', 'input', 'keyevent', '4');
+await adb('shell', 'svc', 'wifi', 'enable'); await adb('shell', 'svc', 'data', 'enable');
+await fs.writeFile(path.join(output, 'slice-two-result.json'), JSON.stringify({ at: new Date().toISOString(), packageID, passed: ['new empty collection', 'native species/game pickers', 'add Pokémon', 'edit name/shiny', 'create box', 'move across boxes', 'undo move', 'wallpaper', 'record ribbon', 'Journey', 'offline SQLite reopen', 'original-format native share sheet'] }, null, 2));
+console.log('Native slice-two collection workflow passed.');

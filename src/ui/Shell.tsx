@@ -13,7 +13,7 @@ export function Shell({ children }: React.PropsWithChildren) {
   return <View style={ui.page}>
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View style={{ backgroundColor: colors.panel, borderBottomWidth: 2, borderColor: colors.ink }}>
-        <View style={[ui.between, { width: '100%', maxWidth: 1400, alignSelf: 'center', paddingHorizontal: width < 600 ? 16 : 24, paddingVertical: 16 }]}>
+        <View style={[ui.between, { width: '100%', maxWidth: 1240, alignSelf: 'center', paddingHorizontal: width < 600 ? 16 : 24, paddingVertical: 16 }]}>
           <View style={[ui.row, width < 800 && { width: '100%' }]}>
             <Image source={require('../../assets/icon.png')} style={{ width: 40, height: 40 }} />
             <View style={{ flexShrink: 1, minWidth: 0 }}><PixelText style={{ fontSize: 23 }}>Ribbon Passport</PixelText><PixelText style={ui.label}>YOUR COLLECTION. YOUR JOURNEY.</PixelText></View>

@@ -1,0 +1,78 @@
+{
+  "source": "Original bundled Ribbon Passport iPhone sprites",
+  "prepared": "Alpha bounds > 8, nearest-neighbour 8x; all original visible pixels retained.",
+  "files": [
+    {
+      "key": "sprite-lugia-shadow",
+      "source": "assets/art/sprite-lugia-shadow.png",
+      "sha256": "47c59747f6cc7be852cc749da0cd45d62f1141f196893a59ddb9e3a308066707",
+      "scale": 8
+    },
+    {
+      "key": "sprite-regular_metagross",
+      "source": "assets/art/sprite-regular_metagross.png",
+      "sha256": "43507141ca886b5a57ef561117e1e1fe02fd756ae429d9726fd754957e43a0a3",
+      "scale": 8
+    },
+    {
+      "key": "sprite-regular_mew",
+      "source": "assets/art/sprite-regular_mew.png",
+      "sha256": "167f615afd36a63f4be4df127184d7262125b03c6a7c4971809afd5a30c5c00d",
+      "scale": 8
+    },
+    {
+      "key": "sprite-regular_pikachu",
+      "source": "assets/art/sprite-regular_pikachu.png",
+      "sha256": "f466d0489b7276e39a7d1da6d5a0cf4e6c3332634e43a8126144262b991fc4f2",
+      "scale": 8
+    },
+    {
+      "key": "sprite-regular_rayquaza",
+      "source": "assets/art/sprite-regular_rayquaza.png",
+      "sha256": "a75d3093d611ccc7aa1d09a5cd2e880b7a8091fdbb68b8f82dd49e7db80fc1b5",
+      "scale": 8
+    },
+    {
+      "key": "sprite-regular_venusaur",
+      "source": "assets/art/sprite-regular_venusaur.png",
+      "sha256": "a8cb5e01a51e8ae7ad0c355bb68763949c8599896fe00975e994f573922ea1f5",
+      "scale": 8
+    },
+    {
+      "key": "sprite-shiny_gardevoir",
+      "source": "assets/art/sprite-shiny_gardevoir.png",
+      "sha256": "10f3c26c614e0d3d66eb3664a73d50b0b8b5a8e54829c91bf1022de605a2a406",
+      "scale": 8
+    },
+    {
+      "key": "sprite-shiny_pikachu-gmax",
+      "source": "assets/art/sprite-shiny_pikachu-gmax.png",
+      "sha256": "2821a1d416a12b7b930d50276ea06f997fcfe5500c59b7d3381c06f6939d239d",
+      "scale": 8
+    },
+    {
+      "key": "sprite-shiny_pikachu",
+      "source": "assets/art/sprite-shiny_pikachu.png",
+      "sha256": "2ba8fff6eddb837135e87209b9cfd9f69c61cb0038aee0364f6d5eb132229e9e",
+      "scale": 8
+    },
+    {
+      "key": "sprite-shiny_rayquaza",
+      "source": "assets/art/sprite-shiny_rayquaza.png",
+      "sha256": "e3d2969258badc16259092d552c28bb84fa32b7eb95206cfb4cdd86cd5d2a0b5",
+      "scale": 8
+    },
+    {
+      "key": "sprite-shiny_swampert",
+      "source": "assets/art/sprite-shiny_swampert.png",
+      "sha256": "bac4fe572760e3cb512417c639ec5d68c11a24d2127bcdde4a6d1bb3a30ee799",
+      "scale": 8
+    },
+    {
+      "key": "sprite-shiny_sylveon",
+      "source": "assets/art/sprite-shiny_sylveon.png",
+      "sha256": "9e89c3e117d68a8e715ab62faf05652fb434cafc5a7b9f3725f6810437e3ddfc",
+      "scale": 8
+    }
+  ]
+}

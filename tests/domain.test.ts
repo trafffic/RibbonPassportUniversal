@@ -13,6 +13,7 @@ test('bundled catalogue and six authored samples load without network', () => {
   assert.equal(Object.keys(ruleData.species).length, 1549);
   assert.equal(Object.keys(ruleData.awards).length, 159);
   assert.equal(createSample().records.length, 6);
+  assert.deepEqual(createSample().boxes.map(box => box.name), ['Box 01']);
   assert.equal(new Set(createSample().records.map(r => r.id)).size, 6);
 });
 test('eligibility: level-50 winning limit, event and automatic awards', () => {

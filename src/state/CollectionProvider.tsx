@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import * as Crypto from 'expo-crypto';
-import type { Collection } from '../domain/model';
+import type { Box, Collection, Pokemon } from '../domain/model';
+import { addPokemon, editPokemon, createBox, editBox, movePokemon, restoreCollection, emptyCollection, type PokemonDetails } from '../domain/organisation';
 import { changeRibbon, undoChange, type UndoToken } from '../domain/collection';
 import { createSample } from '../domain/sample';
 import { collectionStore } from '../storage';
@@ -13,6 +14,12 @@ interface State {
   select(id: string): Promise<boolean>; selectBox(id: string): Promise<boolean>;
   change(id: string, award: string, game?: string): Promise<boolean>;
   undo(): Promise<boolean>; replace(value: Collection): Promise<boolean>;
+  add(pokemon: Pokemon, boxID: string): Promise<boolean>;
+  edit(id: string, details: PokemonDetails, expectedRevision: string): Promise<boolean>;
+  addBox(name: string): Promise<boolean>;
+  startEmpty(): Promise<boolean>;
+  updateBox(id: string, details: Pick<Box, 'name' | 'wallpaper'>): Promise<boolean>;
+  move(id: string, target: { boxID: string; slot: number } | { partySlot: number }): Promise<boolean>;
   resolveConflict(side: 'ours' | 'theirs'): Promise<void>; dismissError(): void;
 }
 const StateContext = createContext<State | null>(null);
@@ -58,7 +65,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
   const value: State = {
     collection, busy, error, notice, conflict, canUndo: !!undo,
     dismissError: () => setError(''),
-    select: id => commit(c => ({ ...c, selectedID: id, revision: Crypto.randomUUID() }), ''),
+    select: id => commit(c => ({ ...c, selectedID: id, selectedBoxID: c.boxes.find(b => b.slots.includes(id))?.id ?? c.selectedBoxID, revision: Crypto.randomUUID() }), ''),
     selectBox: id => commit(c => ({ ...c, selectedBoxID: id, revision: Crypto.randomUUID() }), ''),
     change: async (id, award, game) => {
       let token: UndoToken;
@@ -66,8 +73,14 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     },
     undo: async () => {
       if (!undo) return false;
-      return commit(c => 'before' in undo ? undoChange(c, undo, context()) : { ...undo, revision: Crypto.randomUUID() }, 'Change undone. Saved on this device.', () => setUndo(null));
+      return commit(c => 'before' in undo ? undoChange(c, undo, context()) : restoreCollection(c, undo, context()), 'Change undone. Saved on this device.', () => setUndo(null));
     },
+    add: (p, boxID) => commit(c => addPokemon(c, p, boxID, context()), 'Pokémon added. Saved on this device.', before => setUndo(before)),
+    edit: (id, details, expected) => commit(c => editPokemon(c, id, details, expected, context()), 'Pokémon updated. Ribbon history kept.', before => setUndo(before)),
+    addBox: name => commit(c => createBox(c, Crypto.randomUUID(), name, context()), 'Box created. Saved on this device.', before => setUndo(before)),
+    startEmpty: () => commit(() => emptyCollection(Crypto.randomUUID(), Crypto.randomUUID(), Crypto.randomUUID(), new Date().toISOString()), 'Empty collection created. Previous collection archived locally.', before => setUndo(before)),
+    updateBox: (id, details) => commit(c => editBox(c, id, details, context()), 'Box updated. Saved on this device.', before => setUndo(before)),
+    move: (id, target) => commit(c => movePokemon(c, id, target, context()), 'Pokémon moved. Saved on this device.', before => setUndo(before)),
     replace: next => commit(() => ({ ...next, revision: Crypto.randomUUID() }), 'Backup imported. Original fields preserved.', before => setUndo(before)),
     resolveConflict: async side => {
       if (!conflict || locked.current) return;

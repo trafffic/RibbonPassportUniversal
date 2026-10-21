@@ -1,6 +1,8 @@
 # Ribbon Passport Universal
 
-A local-first React Native / Expo / TypeScript / Expo Router port of Ribbon Passport for web, iPhone, Android, iPad, and Android tablets. This repository contains the first working collection → passport → ribbon → Journey slice. It has no authentication, cloud backend, public sharing, community service, or widgets.
+A local-first React Native / Expo / TypeScript / Expo Router port of Ribbon Passport for web, iPhone, Android, iPad, and Android tablets. The first two slices cover collection organisation → passport → ribbons → Journey, with the iPhone app’s Sun/Moon PC artwork, shiny emblems and game mascots. It has no authentication, cloud backend, public sharing, community service, or widgets.
+
+Chosen design direction: Classic PC storage opens Passport Studio. The original iPhone app defines the feature set; the [feature parity checklist](docs/UI-PARITY.md) records what exists and what still needs porting. The design mockup does not establish functional parity.
 
 ## Run locally
 
@@ -23,6 +25,8 @@ npm run serve
 Open http://127.0.0.1:8081. The development server is not the offline test target. A production export precaches the app shell, every route bundle, catalogue, font, and referenced image. Once caching completes, reloads and deep links work offline. A service worker update activates after the old windows close. Browser storage belongs to this origin; changing the port, clearing site data, or private-browsing policies can make a different/empty collection appear. Export backups for portability.
 
 ## Try the slice
+
+Use **Start a new collection** to review and create an empty PC (the previous collection is archived and the action can be undone). **Add Pokémon** opens the species/form and journey editor. **Edit Pokémon** changes details while retaining ribbon ownership and earning history. **Create box** adds storage; **Box settings** changes its name and wallpaper. Choose **Move Pokémon**, switch boxes, then choose a slot; occupied slots swap. The same action moves to/from the six-slot party. Mouse, Tab/Enter and touch use the same controls. **Find Pokémon** searches across boxes and filters by current game without rearranging slots.
 
 1. The first launch seeds six representative Pokémon from the reference app. Select **Box 01**, select a Pokémon, and use **Open full passport**.
 2. **Owned awards** shows the current ribbon case. **Show original records** exposes older ribbons represented by Memory Ribbons. Selecting an award shows its description and known earning location.
@@ -62,6 +66,8 @@ On Windows, long React Native C++ paths may require `./scripts/build-android-win
 | `scripts/` | Local export/service-worker generation and local test server |
 
 [Porting notes](docs/PORTING.md), [backup contract](docs/BACKUPS.md), and [future integration points](docs/ARCHITECTURE.md) describe the boundaries of this slice.
+
+The bundled `assets/prepared/` files use the original iPhone sprites. `node scripts/prepare-artwork.mjs` removes transparent padding and enlarges existing pixels with nearest-neighbour scaling; it does not download or substitute sprites. Both image dimensions fit inside their PC slot or preview, retaining the whole silhouette. `assets/data/sprite-provenance.json` records original source paths and checksums. Species without original bundled artwork show an unavailable marker. See [artwork notes](docs/SLICE-TWO.md).
 
 ## Attribution
 
