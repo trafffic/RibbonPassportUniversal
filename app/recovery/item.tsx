@@ -5,7 +5,7 @@ import { RecoveryItem } from '../../src/ui/Recovery';
 export default function RecoveryItemScreen() {
   const { kind, id } = useLocalSearchParams<{ kind: string; id: string }>();
   return (
-    <Shell>
+    <Shell narrow>
       <RecoveryItem key={`${kind}:${id}`} kind={kind} id={id} />
     </Shell>
   );

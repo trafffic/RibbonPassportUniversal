@@ -52,7 +52,7 @@ export default function Settings() {
     );
   });
   return (
-    <Shell>
+    <Shell narrow>
       <PixelText accessibilityRole="header" style={{ fontSize: 25 }}>
         SETTINGS
       </PixelText>
@@ -81,8 +81,7 @@ export default function Settings() {
       <Button onPress={() => router.push('/recovery')}>Recovery history</Button>
       <Button onPress={state.reload}>Reload saved collection</Button>
       <PixelText style={{ fontSize: 13, color: colors.muted }}>
-        Your collection stays on this device. Reimport your ribbons.guide backup
-        after changes. Showdown teams are preserved when backups are reimported.
+        Your collection lives only on this device. Export a backup regularly.
       </PixelText>
       <PixelText style={ui.heading}>Rarity</PixelText>
       <Button onPress={() => setSheet('Estimated rarity guide')}>
@@ -90,8 +89,7 @@ export default function Settings() {
       </Button>
       <PixelText style={{ fontSize: 13, color: colors.muted }}>
         Rankings are editorial estimates of availability and acquisition
-        challenge, not measured ownership percentages. Top-three displays show
-        ribbons; full boards and totals include marks.
+        challenge, not measured ownership percentages.
       </PixelText>
       <PixelText style={ui.heading}>Credits</PixelText>
       <Button onPress={() => setSheet('Sources & credits')}>

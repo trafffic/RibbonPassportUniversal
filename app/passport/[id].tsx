@@ -104,7 +104,7 @@ export default function PassportScreen() {
           }}
         >
           {width >= 980 && (
-            <View style={{ width: 220 }}>
+            <View style={{ width: width >= 1440 ? 260 : 220 }}>
               <PCBox compact />
             </View>
           )}
@@ -164,7 +164,7 @@ export default function PassportScreen() {
           {width >= 1100 && tab !== 'Journey' && (
             <View
               style={{
-                width: 230,
+                width: width >= 1440 ? 320 : 230,
                 borderLeftWidth: 1,
                 borderColor: colors.border,
                 paddingLeft: 18,

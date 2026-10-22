@@ -6,7 +6,10 @@ import { useTheme } from "./theme";
 import { Art, Button, Panel, PixelText } from "./primitives";
 import { BackupPanel } from "./BackupPanel";
 import { TerminalGlyph } from "./TerminalGlyph";
-export function Shell({ children }: React.PropsWithChildren) {
+export function Shell({
+  children,
+  narrow = false,
+}: React.PropsWithChildren<{ narrow?: boolean }>) {
   const router = useRouter(),
     path = usePathname(),
     params = useLocalSearchParams<{ kind: string; id: string }>(),
@@ -117,7 +120,7 @@ export function Shell({ children }: React.PropsWithChildren) {
             style={[
               ui.between,
               {
-                maxWidth: 1320,
+                maxWidth: width >= 1440 ? 1440 : 1320,
                 width: "100%",
                 alignSelf: "center",
                 paddingHorizontal: 24,
@@ -139,7 +142,7 @@ export function Shell({ children }: React.PropsWithChildren) {
       >
         <View
           style={{
-            maxWidth: 1320,
+            maxWidth: narrow && width >= 1100 ? 960 : width >= 1440 ? 1440 : 1320,
             width: "100%",
             alignSelf: "center",
             padding: phone ? 16 : 24,

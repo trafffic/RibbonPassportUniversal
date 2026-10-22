@@ -7,7 +7,7 @@ export default function TeamList() {
     kind: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <Teams kind={kind} />
     </Shell>
   );
