@@ -115,3 +115,15 @@ export function removeRibbon(p: Pokemon, award: string): Pokemon {
   return { ...p, ribbons: p.ribbons.filter(id => id !== award), earnedGames, earnedGenerations,
     ...(p.title === award ? { title: 'None', titleText: '' } : {}) };
 }
+export function assignableGames(p: Pokemon, award: string): string[] {
+  const rule = data.awards[award], gen = p.earnedGenerations?.[award];
+  if (!p.ribbons.includes(award) || !rule || rule.memory || p.earnedGames?.[award]) return [];
+  const visited = new Set(recordedVisits(p).map(v => v.game));
+  return compatibleGames(p, false).filter(game => visited.has(game) &&
+    (!gen || generation(game) === gen) && unavailableReason(award, game, p, true) === null);
+}
+export function assignAwardGame(p: Pokemon, award: string, game: string): Pokemon {
+  if (!assignableGames(p, award).includes(game)) throw new Error('This ribbon cannot be assigned to that game.');
+  return { ...p, earnedGames: { ...p.earnedGames, [award]: game },
+    earnedGenerations: { ...p.earnedGenerations, [award]: generation(game) }, visits: recordedVisits(p) };
+}

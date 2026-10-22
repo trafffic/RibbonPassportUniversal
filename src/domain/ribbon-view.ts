@@ -7,6 +7,17 @@ import {
   unavailableReason,
 } from './rules';
 import type { Pokemon } from './model';
+export const ribbonPageSizes = [6, 12, 24];
+export const validPageSize = (value: unknown) =>
+  typeof value === 'number' && ribbonPageSizes.includes(value)
+    ? value
+    : value === 32
+      ? 24
+      : 12;
+export const nextPageSize = (value: unknown) =>
+  ribbonPageSizes[
+    (ribbonPageSizes.indexOf(validPageSize(value)) + 1) % ribbonPageSizes.length
+  ]!;
 export type RibbonCategory = 'All' | 'Last chance' | 'Later gens';
 export function ribbonView(
   p: Pokemon,

@@ -102,6 +102,7 @@ export interface Operation {
   kind:
     | 'record-ribbon'
     | 'remove-ribbon'
+    | 'assign-game'
     | 'undo'
     | 'add-pokemon'
     | 'edit-pokemon'
