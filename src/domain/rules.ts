@@ -34,6 +34,14 @@ export function compatibleGames(p: Pokemon, reachableOnly = true): string[] {
     return true;
   }));
 }
+export function journeyGameChoices(p: Pokemon): string[] {
+  const originGroups = p.origingame ? reachableGroups(p.origingame) : null, currentGroup = group(p.currentgame);
+  return compatibleGames(p, false).filter(game => {
+    const g = group(game);
+    if (!g || (originGroups && !originGroups.has(g))) return false;
+    return !currentGroup || reachableGroups(game).has(currentGroup);
+  });
+}
 export function unavailableReason(award: string, game: string, p: Pokemon, historical = false, checkCompatibility = true): string | null {
   const rule = data.awards[award], info = data.species[p.species];
   if (!rule || !info) return 'Choose a Pokémon';

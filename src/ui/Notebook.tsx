@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { useCollection } from '../state/CollectionProvider';
 import { patchPassport } from '../domain/passport';
 import { community } from '../domain/community';
+import { journeyGameChoices } from '../domain/rules';
 import {
   catalog,
   displayName,
@@ -88,8 +89,10 @@ export function Notebook({
             confirmed earning locations remain known stops.
           </PixelText>
           {sortGames([
-            ...Object.keys(ruleData.games),
-            ...(p.visits ?? []).map((v) => v.game),
+            ...new Set([
+              ...journeyGameChoices(p),
+              ...recordedVisits(p).map((v) => v.game),
+            ]),
           ]).map((game) => {
             const known = [
                 p.origingame,
