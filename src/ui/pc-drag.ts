@@ -6,7 +6,9 @@ export type PCTarget =
   | { kind: 'party'; slot: number }
   | { kind: 'page'; direction: -1 | 1 };
 export type PCFrame = { target: PCTarget; rect: Rect };
-const arrowWidth = 28;
+/** The iPhone header is laid out for a board about 340 pt wide; scale it with the board. */
+export const headerScale = (boardWidth: number) =>
+  Math.min(2.2, Math.max(0.75, boardWidth / 340));
 const contains = (r: Rect, p: Point) =>
   r.width > 0 &&
   r.height > 0 &&
@@ -23,10 +25,11 @@ export function pcFrames(
     sy = art.height / m.height,
     cellW = (m.gridWidth * sx) / m.columns,
     cellH = (m.gridHeight * sy) / m.rows,
-    headerY = art.y + art.height * 0.03,
-    headerH = art.height * 0.13,
-    headerX = art.x + art.width * 0.09,
-    headerW = art.width * 0.82;
+    headerY = art.y + art.height * 0.018,
+    headerH = art.height * 0.15,
+    headerX = art.x + art.width * 0.085,
+    headerW = art.width * 0.83,
+    arrowWidth = 28 * headerScale(art.width);
   return [
     ...Array.from({ length: m.columns * m.rows }, (_, slot) => ({
       target: { kind: 'box', slot } as PCTarget,

@@ -25,7 +25,13 @@ import { BackupPanel } from './BackupPanel';
 import { ExportPokemon } from './ExportPokemon';
 import { pcMetrics as m, wallpapers } from './wallpapers';
 import { useTheme } from './theme';
-import { hitTest, pageIndex, pcFrames, type Rect } from './pc-drag';
+import {
+  headerScale as scaleFor,
+  hitTest,
+  pageIndex,
+  pcFrames,
+  type Rect,
+} from './pc-drag';
 type Latest = {
   boardWidth: number;
   party: boolean;
@@ -99,6 +105,7 @@ export function PCBox({
     p = selected?.pokemon;
   const wallpaper =
     wallpapers.find((w) => w.id === box.wallpaper?.sunMoon) ?? wallpapers[0]!;
+  const headerScale = scaleFor(boardWidth);
   const slotW = (boardWidth * m.gridWidth) / m.width / 6,
     slotH = (boardWidth * m.gridHeight) / m.height / 5;
   latest.current = {
@@ -433,13 +440,13 @@ export function PCBox({
             <View
               style={{
                 position: 'absolute',
-                left: '9%',
-                top: '3%',
-                width: '82%',
-                height: '13%',
+                left: '8.5%',
+                top: '1.8%',
+                width: '83%',
+                height: '15%',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 5,
+                gap: 2 * headerScale,
               }}
             >
               <Pressable
@@ -452,25 +459,29 @@ export function PCBox({
                   )
                 }
                 style={{
-                  minWidth: 20,
-                  minHeight: 32,
+                  width: 28 * headerScale,
+                  height: '100%',
+                  alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <PixelText style={{ color: '#FFF', fontSize: 24 }}>‹</PixelText>
+                <PixelText
+                  style={{ color: '#FFF', fontSize: 22 * headerScale }}
+                >
+                  ‹
+                </PixelText>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Rename ${box.name}`}
                 onPress={() => setSheet('Box settings')}
-                style={{ flex: 1, minWidth: 0 }}
+                style={{ flex: 1, minWidth: 0, height: '100%', justifyContent: 'center' }}
               >
                 <PixelText
                   numberOfLines={1}
-                  style={{
-                    color: '#FFF',
-                    fontSize: compact ? 12 : width < 600 ? 16 : 22,
-                  }}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  style={{ color: '#FFF', fontSize: 15 * headerScale }}
                 >
                   {box.name.toUpperCase()}
                 </PixelText>
@@ -479,10 +490,15 @@ export function PCBox({
                 accessibilityRole="button"
                 accessibilityLabel="Party"
                 onPress={toggleParty}
-                style={{ minHeight: 32, justifyContent: 'center' }}
+                style={{
+                  minWidth: 44 * headerScale,
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
                 <PixelText
-                  style={{ color: '#FFF', fontSize: compact ? 11 : 13 }}
+                  style={{ color: '#FFF', fontSize: 13 * headerScale }}
                 >
                   Party
                 </PixelText>
@@ -495,12 +511,17 @@ export function PCBox({
                   state.selectBox(boxes[(index + 1) % boxes.length]!.id)
                 }
                 style={{
-                  minWidth: 20,
-                  minHeight: 32,
+                  width: 28 * headerScale,
+                  height: '100%',
+                  alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <PixelText style={{ color: '#FFF', fontSize: 24 }}>›</PixelText>
+                <PixelText
+                  style={{ color: '#FFF', fontSize: 22 * headerScale }}
+                >
+                  ›
+                </PixelText>
               </Pressable>
             </View>
             <View
