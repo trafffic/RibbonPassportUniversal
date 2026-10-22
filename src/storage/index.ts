@@ -2,7 +2,7 @@ import { openDatabaseAsync } from 'expo-sqlite';
 import { validateCollection } from '../backup/codec';
 import type { Collection } from '../domain/model';
 import { mergeRecovery } from '../domain/recovery';
-import { contentChanged, parseRecovery } from './types';
+import { contentChanged, parseRecovery, parseRecoveryOrEmpty } from './types';
 import { StorageConflict, type CollectionStore } from './types';
 
 const database = async () => {
@@ -95,7 +95,7 @@ export const collectionStore: CollectionStore = {
           await transaction.runAsync(
             'INSERT OR REPLACE INTO documents (id, json) VALUES (?, ?)',
             'recovery',
-            JSON.stringify(mergeRecovery(parseRecovery(saved?.json), recovery)),
+            JSON.stringify(mergeRecovery(parseRecoveryOrEmpty(saved?.json), recovery)),
           );
         }
         await transaction.runAsync(

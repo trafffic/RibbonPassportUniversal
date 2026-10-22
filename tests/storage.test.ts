@@ -124,3 +124,35 @@ test('recovery entries commit atomically with the collection and a failed save l
   );
   assert.equal((await store.load())!.revision, next.revision);
 });
+
+test('an unreadable recovery document does not block saving', async () => {
+  const name = `recovery-${crypto.randomUUID()}`,
+    store = createWebStore(name),
+    sample = createSample();
+  await store.commit(sample, null);
+  await new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open(name);
+    open.onsuccess = () => {
+      const transaction = open.result.transaction('documents', 'readwrite');
+      transaction.objectStore('documents').put('{not json', 'recovery');
+      transaction.oncomplete = () => {
+        open.result.close();
+        resolve();
+      };
+      transaction.onerror = () => reject(transaction.error);
+    };
+    open.onerror = () => reject(open.error);
+  });
+  await assert.rejects(store.recovery());
+  const next = changeRibbon(sample, sample.records[0]!.id, 'galar-champion-ribbon', undefined, {
+    id: 'edit-1',
+    at: '2026-10-21T12:00:00Z',
+  }).collection;
+  const entries = captureRecovery(sample, next, 'edited', '2026-10-21T12:00:00Z', () => crypto.randomUUID());
+  await store.commit(next, sample.revision, false, entries);
+  assert.equal((await store.load())!.revision, next.revision);
+  assert.deepEqual(
+    (await store.recovery()).map((e) => e.id),
+    entries.map((e) => e.id),
+  );
+});

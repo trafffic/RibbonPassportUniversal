@@ -52,3 +52,13 @@ export function parseRecovery(
       !!e.snapshot,
   );
 }
+
+export function parseRecoveryOrEmpty(
+  json: string | null | undefined,
+): RecoveryEntry[] {
+  try {
+    return parseRecovery(json);
+  } catch {
+    return [];
+  }
+}

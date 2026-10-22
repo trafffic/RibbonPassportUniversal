@@ -1,7 +1,7 @@
 import { validateCollection } from '../backup/codec';
 import type { Collection } from '../domain/model';
 import { mergeRecovery } from '../domain/recovery';
-import { contentChanged, parseRecovery } from './types';
+import { contentChanged, parseRecovery, parseRecoveryOrEmpty } from './types';
 import { StorageConflict, type CollectionStore } from './types';
 
 export function createWebStore(name = 'ribbon-passport-v1'): CollectionStore {
@@ -144,11 +144,8 @@ export function createWebStore(name = 'ribbon-passport-v1'): CollectionStore {
                 : new Error('Local collection changed. Reopen to restore it.');
             } else {
               if (current && contentChanged(current, next)) {
-                const archiveAt = Math.max(
-                  Date.now(),
-                  Number(sequence.result ?? 0) + 1,
-                );
-                documents.put(archiveAt, 'archive-sequence');
+                const archiveAt=Math.max(Date.now(),Number(sequence.result??0)+1);
+                documents.put(archiveAt,'archive-sequence');
                 documents.put(
                   request.result,
                   `archive:${archiveAt}:${current.id}:${current.revision}`,
@@ -157,7 +154,7 @@ export function createWebStore(name = 'ribbon-passport-v1'): CollectionStore {
               if (recovery.length)
                 documents.put(
                   JSON.stringify(
-                    mergeRecovery(parseRecovery(saved.result), recovery),
+                    mergeRecovery(parseRecoveryOrEmpty(saved.result), recovery),
                   ),
                   'recovery',
                 );

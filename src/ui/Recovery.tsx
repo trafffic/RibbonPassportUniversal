@@ -66,7 +66,6 @@ function useRecovery() {
   return state;
 }
 function Artwork({ entry, size }: { entry: RecoveryEntry; size: number }) {
-  const { colors } = useTheme();
   if (entry.kind === 'pokemon')
     return <Sprite pokemon={entry.snapshot.pokemon} size={size} />;
   return <Art name="award-winning-ribbon" size={size * 0.7} />;
