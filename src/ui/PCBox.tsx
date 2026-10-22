@@ -20,7 +20,13 @@ import { exportSource } from '../backup/codec';
 import { saveBackup } from '../backup/files';
 import { loadPreference, savePreference } from '../state/preference';
 import { Art, Button, Panel, PixelText, Sprite } from './primitives';
-import { BoxEditor, EditorSheet, PokemonEditor } from './Editors';
+import {
+  BoxEditor,
+  EditorSheet,
+  MenuItem,
+  PokemonEditor,
+  useAnchor,
+} from './Editors';
 import { BackupPanel } from './BackupPanel';
 import { ExportPokemon } from './ExportPokemon';
 import { pcMetrics as m, wallpapers } from './wallpapers';
@@ -42,6 +48,7 @@ type Latest = {
   byID: Map<string, Pokemon>;
   state: ReturnType<typeof useCollection>;
 };
+const menuSheets = ['Options', 'Box options', 'Pokémon actions'];
 export function PCBox({
   kind = 'ribbon',
   compact = false,
@@ -63,6 +70,9 @@ export function PCBox({
         wallpaper: undefined,
       },
     index = boxes.findIndex((b) => b.id === box.id);
+  const optionsAnchor = useAnchor(),
+    boxAnchor = useAnchor(),
+    actionsAnchor = useAnchor();
   const [boardWidth, setBoardWidth] = useState(300),
     [sheet, setSheet] = useState(''),
     [moving, setMoving] = useState(''),
@@ -293,9 +303,10 @@ export function PCBox({
             {kind === 'ribbon' ? 'RIBBON MASTERS' : 'COMPETITIVE'}
           </PixelText>
           <Pressable
+            ref={optionsAnchor.ref}
             accessibilityRole="button"
             accessibilityLabel="Collection options"
-            onPress={() => setSheet('Options')}
+            onPress={() => optionsAnchor.measure(() => setSheet('Options'))}
             style={{
               minHeight: 44,
               justifyContent: 'center',
@@ -650,12 +661,16 @@ export function PCBox({
                   {kind === 'ribbon' ? 'Passport ▸' : 'Build ▸'}
                 </PixelText>
               </Pressable>
-              <Button
-                label="Pokémon actions"
-                onPress={() => setSheet('Pokémon actions')}
-              >
-                ···
-              </Button>
+              <View ref={actionsAnchor.ref} collapsable={false}>
+                <Button
+                  label="Pokémon actions"
+                  onPress={() =>
+                    actionsAnchor.measure(() => setSheet('Pokémon actions'))
+                  }
+                >
+                  ···
+                </Button>
+              </View>
             </View>
             {kind === 'ribbon' && (
               <Pressable
@@ -712,8 +727,27 @@ export function PCBox({
       </View>
       {!compact && (
         <View style={ui.between}>
-          <Button onPress={() => setSheet('All boxes')}>▦ All boxes</Button>
-          <Button onPress={() => setSheet('Box options')}>Box options</Button>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="All boxes"
+            onPress={() => setSheet('All boxes')}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <PixelText style={{ fontSize: 14, color: colors.muted }}>
+              ▦ All boxes
+            </PixelText>
+          </Pressable>
+          <Pressable
+            ref={boxAnchor.ref}
+            accessibilityRole="button"
+            accessibilityLabel="Box options"
+            onPress={() => boxAnchor.measure(() => setSheet('Box options'))}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <PixelText style={{ fontSize: 14, color: colors.muted }}>
+              ▣ Box options
+            </PixelText>
+          </Pressable>
         </View>
       )}
       {!!moving && (
@@ -754,50 +788,72 @@ export function PCBox({
         'Delete Pokémon',
         'Refresh demo',
       ].includes(sheet) && (
-        <EditorSheet title={sheet} onClose={() => setSheet('')}>
+        <EditorSheet
+          title={menuSheets.includes(sheet) ? 'Options' : sheet}
+          close={menuSheets.includes(sheet) ? 'Close' : 'Cancel'}
+          menu={menuSheets.includes(sheet)}
+          anchor={
+            sheet === 'Options'
+              ? optionsAnchor.rect
+              : sheet === 'Box options'
+                ? boxAnchor.rect
+                : sheet === 'Pokémon actions'
+                  ? actionsAnchor.rect
+                  : undefined
+          }
+          onClose={() => setSheet('')}
+        >
           {sheet === 'Options' ? (
             <>
-              <Button
+              <MenuItem
+                link
                 onPress={() => {
                   setSheet('');
                   router.push({ pathname: '/teams', params: { kind } });
                 }}
               >
                 Teams
-              </Button>
+              </MenuItem>
               {kind === 'showdown' && (
                 <>
-                  <Button
+                  <MenuItem
+                    link
                     onPress={() => {
                       setSheet('');
                       router.push('/library');
                     }}
                   >
                     Team library
-                  </Button>
-                  <Button
+                  </MenuItem>
+                  <MenuItem
+                    glyph="download"
                     onPress={() => {
                       setSheet('');
                       router.push('/import-showdown');
                     }}
                   >
                     Import Showdown team
-                  </Button>
+                  </MenuItem>
                 </>
               )}
-              <Button onPress={startAdd}>Add Pokémon</Button>
-              <Button onPress={() => setSheet('Backups')}>
-                Import / export
-              </Button>
+              <MenuItem glyph="add" onPress={startAdd}>
+                Add Pokémon
+              </MenuItem>
+              {kind === 'ribbon' && (
+                <MenuItem glyph="download" onPress={() => setSheet('Backups')}>
+                  Import ribbons.guide backup
+                </MenuItem>
+              )}
               {kind === 'ribbon' && (
                 <>
-                  <Button
+                  <MenuItem
+                    glyph="export"
                     disabled={!ribbonRecords.length}
                     onPress={exportRibbonMasters}
                   >
                     Export Ribbon Masters
-                  </Button>
-                  <Button
+                  </MenuItem>
+                  <MenuItem
                     onPress={() => {
                       if (hasDemo) setSheet('Refresh demo');
                       else {
@@ -807,45 +863,49 @@ export function PCBox({
                     }}
                   >
                     {hasDemo ? 'Refresh demo' : 'Try demo'}
-                  </Button>
+                  </MenuItem>
                 </>
               )}
-              <Button
+              <MenuItem
+                glyph="add"
                 onPress={async () => {
                   await addBox();
                   setSheet('');
                 }}
               >
                 New box
-              </Button>
-              <Button
+              </MenuItem>
+              <MenuItem onPress={() => setSheet('Backups')}>
+                Backups
+              </MenuItem>
+              <MenuItem
                 onPress={() => {
                   setFinding(!finding);
                   setSheet('');
                 }}
               >
                 Find Pokémon
-              </Button>
-              <Button onPress={() => setSheet('new')}>
+              </MenuItem>
+              <MenuItem onPress={() => setSheet('new')}>
                 Start a new collection
-              </Button>
+              </MenuItem>
             </>
           ) : sheet === 'Box options' ? (
             <>
-              <Button onPress={() => setSheet('Box settings')}>
+              <MenuItem onPress={() => setSheet('Box settings')}>
                 Wallpaper
-              </Button>
-              <Button onPress={() => setSheet('Box settings')}>
+              </MenuItem>
+              <MenuItem onPress={() => setSheet('Box settings')}>
                 Rename box
-              </Button>
-              <Button
+              </MenuItem>
+              <MenuItem
                 onPress={async () => {
                   await addBox();
                   setSheet('');
                 }}
               >
                 New box
-              </Button>
+              </MenuItem>
             </>
           ) : sheet === 'All boxes' ? (
             boxes.map((b) => (
@@ -898,24 +958,25 @@ export function PCBox({
             </>
           ) : (
             <>
-              <Button
+              <MenuItem
+                link
                 onPress={() => {
                   setSheet('');
                   open();
                 }}
               >
-                Open passport
-              </Button>
-              <Button onPress={() => setSheet('edit')}>Edit Pokémon</Button>
-              <Button
+                {kind === 'ribbon' ? 'Open passport' : 'Open build'}
+              </MenuItem>
+              <MenuItem onPress={() => setSheet('edit')}>Edit Pokémon</MenuItem>
+              <MenuItem
                 onPress={() => {
                   setMoving(moving ? '' : (p?.id ?? ''));
                   setSheet('');
                 }}
               >
                 {moving ? 'Cancel move' : 'Move'}
-              </Button>
-              <Button
+              </MenuItem>
+              <MenuItem
                 disabled={
                   !p ||
                   (!c.partyIDs.includes(p.id) &&
@@ -943,11 +1004,13 @@ export function PCBox({
                 {p && c.partyIDs.includes(p.id)
                   ? 'Return to box'
                   : 'Add to party'}
-              </Button>
-              <Button onPress={() => setSheet('Export Pokémon')}>
+              </MenuItem>
+              <MenuItem onPress={() => setSheet('Export Pokémon')}>
                 Export Pokémon
-              </Button>
-              <Button onPress={() => setSheet('Delete Pokémon')}>Delete</Button>
+              </MenuItem>
+              <MenuItem destructive onPress={() => setSheet('Delete Pokémon')}>
+                Delete
+              </MenuItem>
             </>
           )}
         </EditorSheet>
@@ -975,7 +1038,11 @@ export function PCBox({
         </EditorSheet>
       )}
       {sheet === 'Export Pokémon' && p && (
-        <EditorSheet title="Export Pokémon" onClose={() => setSheet('')}>
+        <EditorSheet
+          title="Export Pokémon"
+          close="Done"
+          onClose={() => setSheet('')}
+        >
           <ExportPokemon id={p.id} />
         </EditorSheet>
       )}

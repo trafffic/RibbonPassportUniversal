@@ -82,7 +82,7 @@ test('create empty collection, add and edit Pokémon, then recover the earlier v
   await expect(level).toHaveValue('100');
   await expect(button(page, 'Increase Level')).toBeDisabled();
   await level.fill('42');
-  await button(page, 'Met level unknown').click();
+  await page.getByRole('switch', { name: 'Met level known', exact: true }).click();
   const met = page.getByRole('textbox', { name: 'Met level', exact: true });
   await expect(met).toHaveValue('42');
   await button(page, 'Decrease Met level').click();

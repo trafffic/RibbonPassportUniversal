@@ -379,6 +379,7 @@ export function PassportOverview({ pokemon: p }: { pokemon: Pokemon }) {
       {owned && (
         <EditorSheet
           title="Owned awards"
+          close="Done"
           onClose={() => {
             setOwned(false);
             setGallery("");
@@ -447,7 +448,7 @@ export function TransferSheet({
     (id) => generation(id) > generation(p.currentgame),
   );
   return (
-    <EditorSheet title="Transfer check" onClose={onClose}>
+    <EditorSheet title="Transfer check" close="Done" onClose={onClose}>
       <PixelText>{generationLabel(t)}</PixelText>
       <Panel
         style={{ backgroundColor: t.isSafe ? colors.board : colors.warning }}

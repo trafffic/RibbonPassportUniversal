@@ -6,10 +6,16 @@ import { Button, PixelText } from './primitives';
 import { PassportHero, PassportOverview } from './PassportPanels';
 import { RibbonBoard } from './RibbonBoard';
 import { Journey } from './Journey';
-import { EditorSheet, PokemonEditor } from './Editors';
+import {
+  EditorSheet,
+  MenuItem,
+  PokemonEditor,
+  useAnchor,
+} from './Editors';
+import { CornerButton } from './CornerButton';
+import { displayName } from '../domain/catalog';
 import { ExportPokemon } from './ExportPokemon';
 import { useTheme } from './theme';
-import { TerminalGlyph } from './TerminalGlyph';
 import { useLayout } from './layout';
 import { Missing } from './Missing';
 
@@ -39,6 +45,7 @@ export function PassportPane({
     { colors, ui } = useTheme();
   const record = state.collection?.records.find((r) => r.id === id),
     p = record?.pokemon;
+  const menuAnchor = useAnchor();
   const [tab, setTab] = useState(tabFor(requested)),
     [menu, setMenu] = useState('');
   useEffect(() => setTab(tabFor(requested)), [id, requested]);
@@ -55,50 +62,31 @@ export function PassportPane({
         }}
       >
         {studio ? (
-          <View />
+          <View style={{ width: 40 }} />
         ) : isPhone ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back to storage"
+          <CornerButton
+            title="Back"
+            kind="back"
+            label="Back to storage"
             onPress={() => router.replace('/')}
-            style={{
-              width: 42,
-              height: 42,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.panel,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <TerminalGlyph kind="back" color={colors.ink} size={20} />
-          </Pressable>
+          />
         ) : (
           <Button onPress={() => router.replace('/')}>← Back to storage</Button>
         )}
-        <PixelText accessibilityRole="header" style={{ fontSize: 20 }}>
-          PASSPORT
+        <PixelText
+          accessibilityRole="header"
+          numberOfLines={1}
+          style={{ fontSize: 20, flexShrink: 1 }}
+        >
+          {tab === 'Ribbons' ? displayName(p).toUpperCase() : 'PASSPORT'}
         </PixelText>
-        {isPhone ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Passport options"
-            onPress={() => setMenu('Options')}
-            style={{
-              width: 42,
-              height: 42,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.panel,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <TerminalGlyph kind="options" color={colors.ink} size={20} />
-          </Pressable>
-        ) : (
-          <Button onPress={() => setMenu('Options')}>Options</Button>
-        )}
+        <View ref={menuAnchor.ref} collapsable={false}>
+          <CornerButton
+            title="Options"
+            label="Passport options"
+            onPress={() => menuAnchor.measure(() => setMenu('Options'))}
+          />
+        </View>
       </View>
       {tab === 'Overview' && <PassportHero pokemon={p} />}
       <View
@@ -145,9 +133,15 @@ export function PassportPane({
         <Journey pokemon={p} />
       )}
       {menu === 'Options' && (
-        <EditorSheet title="Passport options" onClose={() => setMenu('')}>
-          <Button onPress={() => setMenu('Edit')}>Edit Pokémon</Button>
-          <Button
+        <EditorSheet
+          title="Options"
+          menu
+          close="Close"
+          anchor={menuAnchor.rect}
+          onClose={() => setMenu('')}
+        >
+          <MenuItem onPress={() => setMenu('Edit')}>Edit Pokémon</MenuItem>
+          <MenuItem
             onPress={() => {
               setMenu('');
               router.push({
@@ -157,9 +151,9 @@ export function PassportPane({
             }}
           >
             Edit visits
-          </Button>
+          </MenuItem>
           {['Milestones', 'Memories', 'Move Dex'].map((section) => (
-            <Button
+            <MenuItem
               key={section}
               onPress={() => {
                 setMenu('');
@@ -170,9 +164,9 @@ export function PassportPane({
               }}
             >
               {section}
-            </Button>
+            </MenuItem>
           ))}
-          <Button
+          <MenuItem
             onPress={() => {
               setMenu('');
               router.push({
@@ -182,16 +176,18 @@ export function PassportPane({
             }}
           >
             Ribbon field guides
-          </Button>
-          <Button onPress={() => setMenu('Backups')}>Export</Button>
-          <Button
+          </MenuItem>
+          <MenuItem glyph="export" onPress={() => setMenu('Backups')}>
+          Export
+        </MenuItem>
+          <MenuItem
             onPress={() => {
               setMenu('');
               router.push('/recovery');
             }}
           >
             Saved versions
-          </Button>
+          </MenuItem>
         </EditorSheet>
       )}
       {menu === 'Edit' && record && (
@@ -202,7 +198,7 @@ export function PassportPane({
         />
       )}
       {menu === 'Backups' && (
-        <EditorSheet title="Export" onClose={() => setMenu('')}>
+        <EditorSheet title="Export" close="Done" onClose={() => setMenu('')}>
           <ExportPokemon id={id} />
         </EditorSheet>
       )}
