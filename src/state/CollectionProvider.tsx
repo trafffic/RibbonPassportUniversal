@@ -187,7 +187,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
         setBusy(false);
       }
     },
-    mutate: (build, message = 'Saved on this device.') =>
+    mutate: (build, message = 'Saved.') =>
       commit(
         (c) => build(c, context()),
         message,
@@ -219,8 +219,8 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
           return result.collection;
         },
         game
-          ? 'Ribbon recorded. Saved on this device.'
-          : 'Ribbon removed. Saved on this device.',
+          ? 'Ribbon recorded.'
+          : 'Ribbon removed.',
         () => setUndo(token),
       );
     },
@@ -231,7 +231,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
           'before' in undo
             ? undoChange(c, undo, context())
             : restoreCollection(c, undo, context()),
-        'Change undone. Saved on this device.',
+        'Change undone.',
         () => setUndo(null),
         'restored',
       );
@@ -239,7 +239,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     add: (p, boxID) =>
       commit(
         (c) => addPokemon(c, p, boxID, context()),
-        'Pokémon added. Saved on this device.',
+        'Pokémon added.',
         (before) => setUndo(before),
       ),
     edit: (id, details, expected) =>
@@ -251,7 +251,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     addBox: (name) =>
       commit(
         (c) => createBox(c, Crypto.randomUUID(), name, context()),
-        'Box created. Saved on this device.',
+        'Box created.',
         (before) => setUndo(before),
       ),
     startEmpty: () =>
@@ -276,13 +276,13 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     updateBox: (id, details) =>
       commit(
         (c) => editBox(c, id, details, context()),
-        'Box updated. Saved on this device.',
+        'Box updated.',
         (before) => setUndo(before),
       ),
     move: (id, target) =>
       commit(
         (c) => movePokemon(c, id, target, context()),
-        'Pokémon moved. Saved on this device.',
+        'Pokémon moved.',
         (before) => setUndo(before),
       ),
     replace: (next) =>

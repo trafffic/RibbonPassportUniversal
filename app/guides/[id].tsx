@@ -9,7 +9,7 @@ export default function Guide() {
     award: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <GuideDetail key={id} id={id} initialGame={game} award={award} />
     </Shell>
   );

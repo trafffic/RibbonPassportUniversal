@@ -19,6 +19,10 @@ import { displayName, spriteKey, gameName } from '../domain/catalog';
 import type { Pokemon } from '../domain/model';
 import { gameColour } from '../domain/game-colours';
 import { clampInt, isoToday } from './form-logic';
+import { useLayout } from './layout';
+import { spriteSources } from '../domain/sprite-sources';
+import { resolveSprite } from './sprite-cache';
+import { consoleKey, itemKey, tintHex } from '../domain/art-ui';
 export function PixelText({ style, ...props }: TextProps) {
   const { colors, ui, dark } = useTheme();
   return (
@@ -43,6 +47,7 @@ export function Button({
   art?: string;
 }) {
   const { colors, ui, dark } = useTheme();
+  const { isTablet } = useLayout();
   return (
     <Pressable
       testID={testID}
@@ -53,8 +58,13 @@ export function Button({
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered, focused }: any) => [
         styles.button,
+        // Wide screens: size to content instead of stretching across the column.
+        isTablet && { alignSelf: 'flex-start' as const },
+        Platform.OS === 'web' && ({ cursor: disabled ? 'default' : 'pointer' } as any),
+        hovered && !disabled && { opacity: 0.85 },
+        focused && { borderWidth: 2 },
         {
           borderColor: colors.border,
           backgroundColor: primary ? colors.accent : colors.panel,
@@ -90,6 +100,31 @@ export function Button({
       </View>
     </Pressable>
   );
+}
+/** Held item with its icon and tint, as the iPhone HeldItemLabel. */
+export function HeldItem({ item, size = 14 }: { item?: string; size?: number }) {
+  const { colors, dark } = useTheme();
+  const key = item ? itemKey(item) : '';
+  const known = !!key && (preparedArtwork[key + '-' + (dark ? 'dark' : 'light')] || artwork[key]);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      {!!item && <Art name={known ? key : 'item-unknown'} size={size + 8} />}
+      <PixelText
+        style={{
+          fontSize: size,
+          color: item ? tintHex(key, dark) ?? colors.ink : colors.muted,
+        }}
+      >
+        {item || 'No held item'}
+      </PixelText>
+    </View>
+  );
+}
+/** Origin console icon for a Pokémon, when the catalogue knows the console. */
+export function ConsoleIcon({ game, size = 18 }: { game: string; size?: number }) {
+  const key = consoleKey(game);
+  if (!key) return null;
+  return <Art name={key + '-light'} size={size} label={'Origin console: ' + key.replace('console-', '')} />;
 }
 export function Panel({ style, ...props }: ViewProps) {
   const { colors, ui, dark } = useTheme();
@@ -142,6 +177,50 @@ export function Art({
     </View>
   );
 }
+/** Sprites outside the bundle load from the same sources as the iPhone app. */
+function RemoteSprite({ pokemon }: { pokemon: Pokemon }) {
+  const sources = spriteSources(pokemon).join('|');
+  const [index, setIndex] = React.useState(0);
+  const [uri, setUri] = React.useState('');
+  React.useEffect(() => setIndex(0), [sources]);
+  React.useEffect(() => {
+    let live = true;
+    const list = sources.split('|');
+    setUri('');
+    if (index >= list.length) return;
+    resolveSprite(list[index]!).then(
+      (u) => live && setUri(u),
+      () => live && setIndex(index + 1),
+    );
+    return () => {
+      live = false;
+    };
+  }, [sources, index]);
+  const list = sources.split('|');
+  if (!uri || index >= list.length)
+    return (
+      <PixelText
+        style={{ fontSize: 28 }}
+        accessibilityLabel={
+          index >= list.length
+            ? `Artwork unavailable for ${displayName(pokemon)}`
+            : `Loading artwork for ${displayName(pokemon)}`
+        }
+      >
+        {index >= list.length ? '?' : '…'}
+      </PixelText>
+    );
+  return (
+    <Image
+      source={{ uri }}
+      accessibilityLabel={displayName(pokemon)}
+      resizeMode="contain"
+      fadeDuration={0}
+      onError={() => setIndex(index + 1)}
+      style={[{ width: '100%', height: '100%' }, { imageRendering: 'pixelated' } as any]}
+    />
+  );
+}
 export function Sprite({
   pokemon,
   size = 100,
@@ -177,12 +256,7 @@ export function Sprite({
           style={{ width: '100%', height: '100%' }}
         />
       ) : (
-        <PixelText
-          style={{ fontSize: 28 }}
-          accessibilityLabel={`Artwork unavailable for ${displayName(pokemon)}`}
-        >
-          ?
-        </PixelText>
+        <RemoteSprite pokemon={pokemon} />
       )}
     </View>
   );

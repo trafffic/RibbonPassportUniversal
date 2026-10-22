@@ -7,7 +7,7 @@ export default function BuildScreen() {
     id: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <Build key={id} id={id} />
     </Shell>
   );

@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Pokemon } from '../domain/model';
 import { useTheme } from './theme';
-import { PixelText, Button } from './primitives';
+import { PixelText } from './primitives';
 import { PassportHero, PassportOverview } from './PassportPanels';
 export function PokemonSummary({
   pokemon,
@@ -55,14 +55,7 @@ export function PokemonSummary({
       >
         <PassportHero pokemon={pokemon} />
       </Pressable>
-      {!full && (
-        <>
-          <PassportOverview pokemon={pokemon} />
-          <Button primary onPress={open}>
-            Open passport ▸
-          </Button>
-        </>
-      )}
+      {!full && <PassportOverview pokemon={pokemon} />}
     </View>
   );
 }

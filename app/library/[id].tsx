@@ -8,7 +8,7 @@ export default function Team() {
     game: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <TeamDetail key={id} id={id} initialGame={game} />
     </Shell>
   );

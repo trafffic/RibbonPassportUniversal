@@ -1,3 +1,4 @@
+import { Missing } from './Missing';
 import React, { useState } from 'react';
 import { View, TextInput, Pressable, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -162,7 +163,7 @@ export function GuideDetail({
     router = useRouter();
   const [selected, setSelected] = useState(initialGame),
     [chapter, setChapter] = useState('Steps');
-  if (!guide) return <PixelText>Guide not found.</PixelText>;
+  if (!guide) return <Missing message="This guide is no longer available." />;
   const game = guide.gameIDs.includes(selected)
       ? selected
       : (guide.gameIDs[0] ?? ''),
@@ -388,7 +389,7 @@ export function TeamDetail({
   const [selection, setSelection] = useState(initialGame),
     [chapter, setChapter] = useState('Team'),
     [saved, setSaved] = useState('');
-  if (!team) return <PixelText>Team not found.</PixelText>;
+  if (!team) return <Missing message="This team is no longer in the library." />;
   const game = team.gameIDs.includes(selection) ? selection : team.gameIDs[0]!;
   return (
     <View style={{ gap: 18 }}>
@@ -527,7 +528,7 @@ export function SourceDetail({ id }: { id: string }) {
     source = community.sources.find((s) => s.id === id);
   const [note, setNote] = useState(state.collection?.sourceNotes?.[id] ?? ''),
     [saved, setSaved] = useState(false);
-  if (!source) return <PixelText>Source not found.</PixelText>;
+  if (!source) return <Missing message="This source is no longer available." />;
   return (
     <View style={{ gap: 18 }}>
       <PageHeading title="Source" back="/guides" />

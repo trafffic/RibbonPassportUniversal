@@ -25,8 +25,22 @@ export default function RootLayout() {
   }, []);
   if (error)
     return (
-      <View>
-        <Text>Pixelify Sans could not load. Reopen the app to retry.</Text>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.paper,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          gap: 12,
+        }}
+      >
+        <Text style={{ color: colors.ink, fontSize: 18, textAlign: 'center' }}>
+          Ribbon Passport could not load its font.
+        </Text>
+        <Text style={{ color: colors.muted, textAlign: 'center' }}>
+          Your collection is safe. Close and reopen the app to try again.
+        </Text>
       </View>
     );
   if (!loaded)

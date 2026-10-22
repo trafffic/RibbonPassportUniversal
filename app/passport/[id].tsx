@@ -1,3 +1,4 @@
+import { Missing } from '../../src/ui/Missing';
 import React, { useState, useEffect } from 'react';
 import { View, Pressable, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -104,7 +105,7 @@ export default function PassportScreen() {
           }}
         >
           {width >= 980 && (
-            <View style={{ width: 220 }}>
+            <View style={{ width: width >= 1440 ? 260 : 220 }}>
               <PCBox compact />
             </View>
           )}
@@ -164,7 +165,7 @@ export default function PassportScreen() {
           {width >= 1100 && tab !== 'Journey' && (
             <View
               style={{
-                width: 230,
+                width: width >= 1440 ? 320 : 230,
                 borderLeftWidth: 1,
                 borderColor: colors.border,
                 paddingLeft: 18,
@@ -175,7 +176,7 @@ export default function PassportScreen() {
           )}
         </View>
       ) : (
-        <PixelText>Pokémon not found in this collection.</PixelText>
+        <Missing message="This Pokémon is no longer in your collection." />
       )}
       {menu === 'Options' && (
         <EditorSheet title="Passport options" onClose={() => setMenu('')}>
