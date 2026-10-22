@@ -3,7 +3,7 @@ import orderData from '../../assets/data/catalog-order.json';
 import rulesData from '../../assets/data/ribbon-rules.json';
 import type { Pokemon, Visit } from './model';
 
-interface SpeciesInfo { name: string; sprite?: string; female?: boolean; natdex?: number }
+interface SpeciesInfo { name: string; sprite?: string; female?: boolean; natdex?: number; showdown?: string; pokeapiID?: number }
 interface Catalog {
   pokemon: Record<string, SpeciesInfo>;
   ribbons: Record<string, string>;

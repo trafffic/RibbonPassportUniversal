@@ -20,6 +20,8 @@ import type { Pokemon } from '../domain/model';
 import { gameColour } from '../domain/game-colours';
 import { clampInt, isoToday } from './form-logic';
 import { useLayout } from './layout';
+import { spriteSources } from '../domain/sprite-sources';
+import { resolveSprite } from './sprite-cache';
 import { consoleKey, itemKey, tintHex } from '../domain/art-ui';
 export function PixelText({ style, ...props }: TextProps) {
   const { colors, ui, dark } = useTheme();
@@ -175,6 +177,50 @@ export function Art({
     </View>
   );
 }
+/** Sprites outside the bundle load from the same sources as the iPhone app. */
+function RemoteSprite({ pokemon }: { pokemon: Pokemon }) {
+  const sources = spriteSources(pokemon).join('|');
+  const [index, setIndex] = React.useState(0);
+  const [uri, setUri] = React.useState('');
+  React.useEffect(() => setIndex(0), [sources]);
+  React.useEffect(() => {
+    let live = true;
+    const list = sources.split('|');
+    setUri('');
+    if (index >= list.length) return;
+    resolveSprite(list[index]!).then(
+      (u) => live && setUri(u),
+      () => live && setIndex(index + 1),
+    );
+    return () => {
+      live = false;
+    };
+  }, [sources, index]);
+  const list = sources.split('|');
+  if (!uri || index >= list.length)
+    return (
+      <PixelText
+        style={{ fontSize: 28 }}
+        accessibilityLabel={
+          index >= list.length
+            ? `Artwork unavailable for ${displayName(pokemon)}`
+            : `Loading artwork for ${displayName(pokemon)}`
+        }
+      >
+        {index >= list.length ? '?' : '…'}
+      </PixelText>
+    );
+  return (
+    <Image
+      source={{ uri }}
+      accessibilityLabel={displayName(pokemon)}
+      resizeMode="contain"
+      fadeDuration={0}
+      onError={() => setIndex(index + 1)}
+      style={[{ width: '100%', height: '100%' }, { imageRendering: 'pixelated' } as any]}
+    />
+  );
+}
 export function Sprite({
   pokemon,
   size = 100,
@@ -210,12 +256,7 @@ export function Sprite({
           style={{ width: '100%', height: '100%' }}
         />
       ) : (
-        <PixelText
-          style={{ fontSize: 28 }}
-          accessibilityLabel={`Artwork unavailable for ${displayName(pokemon)}`}
-        >
-          ?
-        </PixelText>
+        <RemoteSprite pokemon={pokemon} />
       )}
     </View>
   );

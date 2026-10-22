@@ -84,3 +84,32 @@ test('a ribbon tile records and removes in one tap, and undo restores it', async
   ).toBeVisible();
   await expect(button(page, 'Owned (10)')).toBeVisible();
 });
+test('species without bundled art load their sprite, falling back through the sources', async ({
+  page,
+}) => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const tried: string[] = [];
+  await page.route('https://raw.githubusercontent.com/**', (route) => {
+    tried.push(route.request().url());
+    return route.fulfill({ status: 404, body: 'missing' });
+  });
+  await page.route('https://play.pokemonshowdown.com/**', (route) => {
+    tried.push(route.request().url());
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      headers: { 'access-control-allow-origin': '*' },
+      body: png,
+    });
+  });
+  await page.goto('/');
+  await backups(page);
+  await importText(page, unknownGame.replace('metagross', 'bulbasaur'));
+  await page.goto('/passport/p1');
+  await expect(page.getByRole('img', { name: 'Bulbasaur' }).first()).toBeVisible();
+  expect(tried[0]).toContain('pokesprite');
+  expect(tried.at(-1)).toContain('pokemonshowdown.com');
+});
