@@ -22,7 +22,17 @@ import type { Box, PassportRecord, Pokemon } from '../domain/model';
 import { blankPokemon, type PokemonDetails } from '../domain/organisation';
 import { compatibleGames, transferCheck } from '../domain/rules';
 import { useCollection } from '../state/CollectionProvider';
-import { Art, Button, Panel, PixelText, Sprite } from './primitives';
+import {
+  Art,
+  Button,
+  DONE_BAR,
+  KeyboardDoneBar,
+  NumberStepper,
+  Panel,
+  PixelText,
+  Sprite,
+} from './primitives';
+import { searchChoices } from './form-logic';
 import { colors, ui, useTheme } from './theme';
 import { wallpapers } from './wallpapers';
 import { gameColour } from '../domain/game-colours';
@@ -101,6 +111,7 @@ export function EditorSheet({
           >
             {children}
           </ScrollView>
+          <KeyboardDoneBar />
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -127,6 +138,7 @@ export function Field({
         onChangeText={onChange}
         style={ui.input}
         keyboardType={numeric ? 'number-pad' : 'default'}
+        inputAccessoryViewID={DONE_BAR}
         autoCapitalize={numeric ? 'none' : 'sentences'}
       />
     </View>
@@ -153,10 +165,7 @@ export function ChoiceField({
     [search, setSearch] = useState(''),
     [limit, setLimit] = useState(30);
   const matches = useMemo(
-    () =>
-      options.filter((o) =>
-        `${o.name} ${o.id}`.toLowerCase().includes(search.toLowerCase()),
-      ),
+    () => searchChoices(options, search),
     [options, search],
   );
   return (
@@ -307,10 +316,8 @@ export function PokemonEditor({
           : {}),
       },
   );
-  const [level, setLevel] = useState(String(draft.currentlevel)),
-    [met, setMet] = useState(
-      draft.metLevel === undefined ? '' : String(draft.metLevel),
-    ),
+  const [level, setLevel] = useState(draft.currentlevel),
+    [met, setMet] = useState<number | undefined>(draft.metLevel),
     [size, setSize] = useState(
       draft.sizeScale === undefined ? '' : String(draft.sizeScale),
     );
@@ -318,8 +325,8 @@ export function PokemonEditor({
   const [marks, setMarks] = useState(false);
   const p = {
     ...draft,
-    currentlevel: Number(level),
-    metLevel: met.trim() ? Number(met) : undefined,
+    currentlevel: level,
+    metLevel: met,
     sizeScale: size.trim() ? Number(size) : undefined,
   };
   const update = <K extends keyof PokemonDetails>(
@@ -374,12 +381,32 @@ export function PokemonEditor({
         onChange={(v) => update('nickname', v)}
       />
       <View style={ui.row}>
-        <Field label="Level" value={level} onChange={setLevel} numeric />
-        <Field label="Met level" value={met} onChange={setMet} numeric />
-        <Field label="Size (0–255)" value={size} onChange={setSize} numeric />
+        <NumberStepper
+          label="Level"
+          value={level}
+          min={1}
+          max={100}
+          onChange={setLevel}
+        />
       </View>
+      <Button
+        primary={met !== undefined}
+        onPress={() => setMet(met === undefined ? level : undefined)}
+      >
+        {met === undefined ? 'Met level unknown' : 'Met level known ✓'}
+      </Button>
+      {met !== undefined && (
+        <NumberStepper
+          label="Met level"
+          value={met}
+          min={1}
+          max={100}
+          onChange={setMet}
+        />
+      )}
+      <Field label="Size (0–255)" value={size} onChange={setSize} numeric />
       <PixelText style={{ fontSize: 14, color: colors.muted }}>
-        Leave unknown met level and size blank. These affect Footprint and
+        Leave unknown size blank. Met level and size affect Footprint and
         size-mark eligibility.
       </PixelText>
       <View style={ui.row}>

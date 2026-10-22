@@ -49,3 +49,9 @@ export async function offline(p: Page) {
     .poll(() => p.evaluate(() => !!navigator.serviceWorker.controller))
     .toBe(true);
 }
+export async function demo(p: Page, path = '/') {
+  await p.goto('/');
+  await button(p, 'Try demo').click();
+  await expect(button(p, 'Select Sparky')).toBeVisible();
+  if (path !== '/') await p.goto(path);
+}

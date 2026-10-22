@@ -368,3 +368,30 @@ export function restoreCollection(
     c.revision,
   );
 }
+// Only the ribbon section, shaped as a ribbons.guide backup for exportSource.
+export function ribbonMastersGuide(c: Collection): Collection {
+  const ids = new Set(
+    c.records.filter((r) => !r.pokemon.showdownSet).map((r) => r.id),
+  );
+  return {
+    ...c,
+    source: {
+      kind: 'guide',
+      text: JSON.stringify({ fileVersion: 5, boxes: [], pokemon: [] }),
+    },
+    records: c.records
+      .filter((r) => ids.has(r.id))
+      .map((r) => ({ ...r, sourceIndex: -1, created: true, changes: {} })),
+    boxes: c.boxes
+      .filter((b) => (b.kind ?? 'ribbon') === 'ribbon')
+      .map((b) => ({
+        ...b,
+        slots: b.slots.map((id) => (id && ids.has(id) ? id : null)),
+      })),
+    partyIDs: c.partyIDs.filter((id) => ids.has(id)),
+    layoutChanged: true,
+    metadataChanged: false,
+    deletedSourceIndexes: [],
+    teams: undefined,
+  };
+}

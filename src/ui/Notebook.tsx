@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { useCollection } from '../state/CollectionProvider';
 import { patchPassport } from '../domain/passport';
 import { community } from '../domain/community';
+import { journeyGameChoices } from '../domain/rules';
 import {
   catalog,
   displayName,
@@ -15,7 +16,13 @@ import {
 import type { Honor, Memory, MoveNote, Pokemon } from '../domain/model';
 import { choosePhoto } from '../backup/photos';
 import { useTheme } from './theme';
-import { Button, PixelText, Panel, GameLabel } from './primitives';
+import {
+  Button,
+  DateKnownField,
+  PixelText,
+  Panel,
+  GameLabel,
+} from './primitives';
 import { ChoiceField, Field, EditorSheet } from './Editors';
 import { PageHeading } from './Community';
 export function Notebook({
@@ -82,8 +89,10 @@ export function Notebook({
             confirmed earning locations remain known stops.
           </PixelText>
           {sortGames([
-            ...Object.keys(ruleData.games),
-            ...(p.visits ?? []).map((v) => v.game),
+            ...new Set([
+              ...journeyGameChoices(p),
+              ...recordedVisits(p).map((v) => v.game),
+            ]),
           ]).map((game) => {
             const known = [
                 p.origingame,
@@ -247,8 +256,8 @@ export function Notebook({
             onChange={(game) => update({ game })}
           />
           {'date' in draft && (
-            <Field
-              label="Date (YYYY-MM-DD)"
+            <DateKnownField
+              key={draft.id}
               value={draft.date}
               onChange={(date) => update({ date })}
             />

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Pressable, useWindowDimensions } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Pressable, ScrollView, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   awardName,
@@ -20,10 +20,12 @@ import {
 import type { Pokemon } from '../domain/model';
 import { editPokemon } from '../domain/organisation';
 import { patchPassport } from '../domain/passport';
+import { guidesFor } from '../domain/community';
 import { useCollection } from '../state/CollectionProvider';
 import { useTheme } from './theme';
 import { Art, Button, GameLabel, Panel, PixelText, Sprite } from './primitives';
 import { ChoiceField, EditorSheet, Field } from './Editors';
+import { bubblePlacement, type Rect } from './bubble-placement';
 export function PassportHero({ pokemon: p }: { pokemon: Pokemon }) {
   const { colors } = useTheme();
   return (
@@ -80,12 +82,15 @@ export function GamePair({ pokemon: p }: { pokemon: Pokemon }) {
 export function AwardGrid({
   ids,
   onSelect,
+  selected,
 }: {
   ids: string[];
-  onSelect(id: string): void;
+  onSelect(id: string, anchor?: Rect): void;
+  selected?: string;
 }) {
   const { width } = useWindowDimensions(),
-    { colors } = useTheme();
+    { colors } = useTheme(),
+    rects = useRef<Record<string, Rect>>({});
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
       {ids.map((id) => (
@@ -93,13 +98,21 @@ export function AwardGrid({
           key={id}
           accessibilityRole="button"
           accessibilityLabel={`Details for ${awardName(id)}`}
-          onPress={() => onSelect(id)}
+          accessibilityState={{ selected: selected === id }}
+          onLayout={(e) => {
+            rects.current[id] = e.nativeEvent.layout;
+          }}
+          onPress={() => onSelect(id, rects.current[id])}
           style={{
             width: width < 360 ? '18.5%' : '15.4%',
             minHeight: 55,
             alignItems: 'center',
             justifyContent: 'center',
             padding: 6,
+            borderRadius: 4,
+            borderWidth: 2,
+            borderColor: selected === id ? colors.accent : 'transparent',
+            backgroundColor: selected === id ? colors.panel : 'transparent',
           }}
         >
           <Art name={'award-' + id} size={34} />
@@ -172,51 +185,192 @@ export function TransferStatus({
     </Pressable>
   );
 }
+function RibbonDescription({
+  awardID,
+  onGuide,
+  onHeight,
+}: {
+  awardID: string;
+  onGuide(): void;
+  onHeight?(height: number): void;
+}) {
+  const { colors } = useTheme(),
+    description =
+      require('../../assets/data/ribbon-rules.json').awards[awardID]
+        ?.description ?? 'No in-game description available.';
+  return (
+    <View onLayout={(e) => onHeight?.(e.nativeEvent.layout.height)}>
+      <View
+        style={{
+          padding: 10,
+          backgroundColor: colors.board,
+          borderBottomWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <PixelText style={{ fontSize: 17 }}>{awardName(awardID)}</PixelText>
+      </View>
+      <PixelText style={{ padding: 12 }}>{description}</PixelText>
+      {guidesFor(awardID).length > 0 && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Field guide"
+          onPress={onGuide}
+          style={{ paddingHorizontal: 12, paddingVertical: 8 }}
+        >
+          <PixelText style={{ fontSize: 14 }}>Field guide ›</PixelText>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+export function RibbonBubble({
+  awardID,
+  anchor,
+  container,
+  onGuide,
+}: {
+  awardID: string;
+  anchor: Rect;
+  container: { width: number; height: number };
+  onGuide(): void;
+}) {
+  const { colors } = useTheme(),
+    [height, setHeight] = useState(120),
+    place = bubblePlacement(container, anchor, height);
+  return (
+    <View
+      accessibilityLabel="Ribbon description"
+      style={{
+        position: 'absolute',
+        left: place.frame.x,
+        top: place.frame.y,
+        width: place.frame.width,
+        height: place.frame.height,
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.panel,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}
+      >
+        <ScrollView>
+          <RibbonDescription
+            awardID={awardID}
+            onGuide={onGuide}
+            onHeight={setHeight}
+          />
+        </ScrollView>
+      </View>
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: place.tipX - 5,
+          [place.above ? 'bottom' : 'top']: -6,
+          width: 10,
+          height: 10,
+          transform: [{ rotate: '45deg' }],
+          backgroundColor: place.above ? colors.panel : colors.board,
+          borderColor: colors.border,
+          [place.above ? 'borderRightWidth' : 'borderLeftWidth']: 1,
+          [place.above ? 'borderBottomWidth' : 'borderTopWidth']: 1,
+        }}
+      />
+    </View>
+  );
+}
 export function PassportOverview({ pokemon: p }: { pokemon: Pokemon }) {
   const router = useRouter(),
     { colors, ui } = useTheme();
   const [selected, setSelected] = useState(''),
+    [anchor, setAnchor] = useState<Rect | null>(null),
+    [gridAt, setGridAt] = useState({ x: 0, y: 0 }),
+    [size, setSize] = useState({ width: 0, height: 0 }),
     [owned, setOwned] = useState(false),
+    [gallery, setGallery] = useState(''),
     [transfer, setTransfer] = useState(false);
+  const close = () => {
+    setSelected('');
+    setAnchor(null);
+  };
   return (
-    <View style={{ gap: 22 }}>
+    <View style={{ gap: 22 }} onLayout={(e) => setSize(e.nativeEvent.layout)}>
+      {!!selected && (
+        <Pressable
+          accessibilityLabel="Hide description"
+          onPress={close}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        />
+      )}
       <GamePair pokemon={p} />
       <View style={ui.between}>
         <PixelText style={{ fontSize: 22 }}>Owned awards</PixelText>
-        <Button onPress={() => setOwned(true)}>
+        <Button
+          onPress={() => {
+            close();
+            setOwned(true);
+          }}
+        >
           {String(displayedAwards(p).length) + ' ›'}
         </Button>
       </View>
-      <AwardGrid ids={displayedAwards(p).slice(0, 12)} onSelect={setSelected} />
-      {!!selected && (
-        <Panel style={{ padding: 14, gap: 10 }}>
-          <View style={ui.between}>
-            <PixelText style={{ fontSize: 20, flex: 1 }}>
-              {awardName(selected)}
-            </PixelText>
-            <Button onPress={() => setSelected('')}>×</Button>
-          </View>
-          <PixelText>
-            {selected && catalog.ribbons[selected]
-              ? (require('../../assets/data/ribbon-rules.json').awards[selected]
-                  ?.description ?? '')
-              : ''}
-          </PixelText>
-          <Button
-            onPress={() =>
-              router.push({
-                pathname: '/guides',
-                params: { award: selected, game: p.currentgame },
-              })
-            }
-          >
-            Field guide ›
-          </Button>
-        </Panel>
-      )}
+      <View
+        onLayout={(e) =>
+          setGridAt({
+            x: e.nativeEvent.layout.x,
+            y: e.nativeEvent.layout.y,
+          })
+        }
+      >
+        <AwardGrid
+          ids={displayedAwards(p).slice(0, 12)}
+          selected={selected}
+          onSelect={(id, rect) => {
+            if (id === selected || !rect) return close();
+            setSelected(id);
+            setAnchor({
+              ...rect,
+              x: rect.x + gridAt.x,
+              y: rect.y + gridAt.y,
+            });
+          }}
+        />
+      </View>
       <TransferStatus pokemon={p} onPress={() => setTransfer(true)} />
+      {!!selected && !!anchor && (
+        <RibbonBubble
+          key={selected}
+          awardID={selected}
+          anchor={anchor}
+          container={size}
+          onGuide={() =>
+            router.push({
+              pathname: '/guides',
+              params: { award: selected, game: p.currentgame },
+            })
+          }
+        />
+      )}
       {owned && (
-        <EditorSheet title="Owned awards" onClose={() => setOwned(false)}>
+        <EditorSheet
+          title="Owned awards"
+          onClose={() => {
+            setOwned(false);
+            setGallery('');
+          }}
+        >
           <PassportHero pokemon={p} />
           <View style={ui.between}>
             <PixelText>Ribbons and marks</PixelText>
@@ -224,11 +378,30 @@ export function PassportOverview({ pokemon: p }: { pokemon: Pokemon }) {
           </View>
           <AwardGrid
             ids={displayedAwards(p)}
-            onSelect={(id) => {
-              setOwned(false);
-              setSelected(id);
-            }}
+            selected={gallery}
+            onSelect={(id) => setGallery(id === gallery ? '' : id)}
           />
+          {!!gallery && (
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                overflow: 'hidden',
+              }}
+            >
+              <RibbonDescription
+                awardID={gallery}
+                onGuide={() => {
+                  setOwned(false);
+                  router.push({
+                    pathname: '/guides',
+                    params: { award: gallery, game: p.currentgame },
+                  });
+                }}
+              />
+            </View>
+          )}
         </EditorSheet>
       )}
       {transfer && (

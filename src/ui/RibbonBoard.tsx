@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -11,19 +11,32 @@ import {
   sortAwards,
 } from '../domain/catalog';
 import {
+  assignableGames,
   compatibleGames,
   earningGames,
   generationEarningGames,
   transferCheck,
   unavailableReason,
 } from '../domain/rules';
-import { ribbonView, type RibbonCategory } from '../domain/ribbon-view';
+import { assignGame } from '../domain/collection';
+import {
+  nextPageSize,
+  validPageSize,
+  ribbonView,
+  type RibbonCategory,
+} from '../domain/ribbon-view';
 import type { Pokemon } from '../domain/model';
 import { useCollection } from '../state/CollectionProvider';
+import { loadPreference, savePreference } from '../state/preference';
 import { useTheme } from './theme';
 import { Art, Button, GameLabel, Panel, PixelText } from './primitives';
 import { EditorSheet, ChoiceField } from './Editors';
-import { AwardGrid, TransferSheet, TransferStatus } from './PassportPanels';
+import {
+  AwardGrid,
+  roman,
+  TransferSheet,
+  TransferStatus,
+} from './PassportPanels';
 export function RibbonBoard({
   pokemon: p,
   planner = false,
@@ -38,12 +51,21 @@ export function RibbonBoard({
     [earnable, setEarnable] = useState(true),
     [catalogue, setCatalogue] = useState(false),
     [category, setCategory] = useState<RibbonCategory>('All'),
-    [size, setSize] = useState(24),
+    [size, setSize] = useState(12),
     [page, setPage] = useState(0),
     [sheet, setSheet] = useState(''),
     [selected, setSelected] = useState(''),
     [chosenGame, setChosenGame] = useState(''),
     [originals, setOriginals] = useState(false);
+  useEffect(() => {
+    let live = true;
+    loadPreference('ribbons.pageSize').then(
+      (value) => live && setSize(validPageSize(Number(value))),
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
   const check = transferCheck(game, p),
     ids = ribbonView(p, game, catalogue, earnable, category),
     pages = Math.max(1, Math.ceil(ids.length / size)),
@@ -58,7 +80,8 @@ export function RibbonBoard({
     represented = memoryGroup
       ? p.ribbons.filter((id) => catalog.merges[id] === memoryGroup)
       : [],
-    options = selected ? earningGames(selected, p) : [];
+    options = selected ? earningGames(selected, p) : [],
+    assignOptions = selected ? assignableGames(p, selected) : [];
   const detail = (id: string) => {
     setSelected(id);
     setChosenGame('');
@@ -69,7 +92,7 @@ export function RibbonBoard({
         <View style={{ gap: 4, flex: 1 }}>
           <GameLabel game={game} />
           <PixelText style={{ fontSize: 11, color: colors.muted }}>
-            GEN {ruleData.games[game]?.gen ?? '?'} ·{' '}
+            GEN {roman(ruleData.games[game]?.gen)} ·{' '}
             {game === p.currentgame ? 'Current game' : 'Planning view'}
           </PixelText>
         </View>
@@ -139,9 +162,12 @@ export function RibbonBoard({
         </PixelText>
         <Button
           onPress={() => {
-            setSize(size === 24 ? 6 : 24);
+            const next = nextPageSize(size);
+            setSize(next);
+            savePreference('ribbons.pageSize', String(next));
             setPage(0);
           }}
+          label={`${size} ribbons per page. Change to ${nextPageSize(size)}`}
         >{`${size}/pg`}</Button>
       </View>
       <View
@@ -172,6 +198,24 @@ export function RibbonBoard({
                 paddingTop: 5,
               }}
             >
+              {last && (
+                <View
+                  accessible={false}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: 15,
+                    height: 17,
+                    alignItems: 'center',
+                    backgroundColor: colors.warningInk,
+                  }}
+                >
+                  <PixelText style={{ fontSize: 12, color: colors.warning }}>
+                    !
+                  </PixelText>
+                </View>
+              )}
               <Art name={'award-' + id} size={size === 24 ? 31 : 48} />
               <View
                 style={{
@@ -326,6 +370,33 @@ export function RibbonBoard({
                   <PixelText>
                     Earned in: {earningLocation(p, selected)}
                   </PixelText>
+                  {!!assignOptions.length && (
+                    <>
+                      <PixelText style={ui.label}>SET GAME</PixelText>
+                      <View style={ui.row}>
+                        {assignOptions.map((g) => (
+                          <Button
+                            key={g}
+                            art={`game-${g}-dark`}
+                            disabled={state.busy}
+                            label={`Set game ${gameName(g)}`}
+                            onPress={async () => {
+                              if (
+                                await state.mutate(
+                                  (c, context) =>
+                                    assignGame(c, p.id, selected, g, context),
+                                  'Earning game saved. Saved on this device.',
+                                )
+                              )
+                                setSelected('');
+                            }}
+                          >
+                            {gameName(g)}
+                          </Button>
+                        ))}
+                      </View>
+                    </>
+                  )}
                   <Button
                     disabled={state.busy}
                     label={`Remove ${awardName(selected)}`}

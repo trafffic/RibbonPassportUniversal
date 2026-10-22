@@ -3,19 +3,57 @@ import { View, TextInput } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../state/CollectionProvider';
-import { updateMetadata, patchPassport } from '../domain/passport';
+import { patchPassport, updateMetadata } from '../domain/passport';
+import {
+  applyTeamVersion,
+  deleteTeam,
+  diffTeamVersion,
+  editTeamVersion,
+  exportTeamVersion,
+  moveMember,
+  removeTeamVersion,
+  saveTeam,
+  saveTeamVersion,
+  teamVersions,
+  toggleMember,
+} from '../domain/teams';
 import {
   exportShowdown,
   parseShowdown,
   importShowdownTeam,
 } from '../domain/showdown';
 import { displayName, gameName, sortGames, ruleData } from '../domain/catalog';
-import type { Pokemon, ShowdownSet, Team } from '../domain/model';
+import {
+  applyBuildVersion,
+  diffBuild,
+  exportBuildVersion,
+  removeBuildVersion,
+  saveBuildVersion,
+  savedBuilds,
+} from '../domain/build-notebook';
+import type { Pokemon, ShowdownSet, Team, TeamBuild } from '../domain/model';
 import { saveBackup } from '../backup/files';
 import { useTheme } from './theme';
 import { Button, PixelText, Panel, Sprite, GameLabel } from './primitives';
 import { ChoiceField, EditorSheet, Field } from './Editors';
 import { CommunityLink, PageHeading } from './Community';
+function useRun() {
+  const [message, setMessage] = useState(''),
+    [error, setError] = useState('');
+  const run = async (
+    work: () => Promise<boolean | void> | boolean | void,
+    done: string,
+  ) => {
+    setError('');
+    setMessage('');
+    try {
+      if ((await work()) !== false) setMessage(done);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return { message, error, run };
+}
 export function Teams({ kind = 'showdown' }: { kind?: string }) {
   const state = useCollection(),
     router = useRouter(),
@@ -70,61 +108,78 @@ export function TeamEditor({
   const state = useCollection(),
     { ui } = useTheme();
   const [name, setName] = useState(team?.name ?? ''),
-    [members, setMembers] = useState(team?.memberIDs ?? []);
+    [members, setMembers] = useState(team?.memberIDs ?? []),
+    [choosing, setChoosing] = useState(false);
   const records = state.collection!.records.filter((r) =>
     kind === 'showdown' ? !!r.pokemon.showdownSet : !r.pokemon.showdownSet,
   );
+  const arranged = members.flatMap((id) => {
+    const p = state.collection!.records.find((r) => r.id === id)?.pokemon;
+    return p ? [p] : [];
+  });
   return (
     <EditorSheet title={team ? 'Edit team' : 'Create team'} onClose={onClose}>
       <Field label="Team name" value={name} onChange={setName} />
-      <PixelText>Choose up to six Pokémon · tap in display order</PixelText>
-      {records.map((r) => (
-        <Button
-          key={r.id}
-          primary={members.includes(r.id)}
-          disabled={!members.includes(r.id) && members.length >= 6}
-          onPress={() =>
-            setMembers(
-              members.includes(r.id)
-                ? members.filter((id) => id !== r.id)
-                : [...members, r.id],
-            )
-          }
-        >{`${members.includes(r.id) ? members.indexOf(r.id) + 1 + ' · ' : ''}${displayName(r.pokemon)}`}</Button>
-      ))}
-      <PixelText style={{ fontSize: 14 }}>
-        Display order:{' '}
-        {members
-          .map((id) =>
-            displayName(
-              state.collection!.records.find((r) => r.id === id)!.pokemon,
-            ),
-          )
-          .join(' → ')}
+      <PixelText style={ui.heading}>
+        Display order · {arranged.length} / 6
       </PixelText>
+      {arranged.map((p, i) => (
+        <Panel key={p.id}>
+          <View style={ui.row}>
+            <PixelText>{i + 1}</PixelText>
+            <Sprite pokemon={p} size={44} />
+            <PixelText style={{ flex: 1 }}>{displayName(p)}</PixelText>
+            <Button
+              label={`Move ${displayName(p)} up`}
+              disabled={i === 0}
+              onPress={() => setMembers(moveMember(members, i, -1))}
+            >
+              ↑
+            </Button>
+            <Button
+              label={`Move ${displayName(p)} down`}
+              disabled={i === arranged.length - 1}
+              onPress={() => setMembers(moveMember(members, i, 1))}
+            >
+              ↓
+            </Button>
+            <Button
+              label={`Remove ${displayName(p)}`}
+              onPress={() => setMembers(toggleMember(members, p.id))}
+            >
+              ×
+            </Button>
+          </View>
+        </Panel>
+      ))}
+      <Button onPress={() => setChoosing(!choosing)}>
+        {choosing ? 'Done choosing' : 'Choose members'}
+      </Button>
+      {choosing && (
+        <>
+          <PixelText>Choose up to six Pokémon · tap to add or remove</PixelText>
+          {records.map((r) => (
+            <Button
+              key={r.id}
+              label={`Member ${displayName(r.pokemon)}`}
+              primary={members.includes(r.id)}
+              disabled={!members.includes(r.id) && members.length >= 6}
+              onPress={() => setMembers(toggleMember(members, r.id))}
+            >{`${members.includes(r.id) ? members.indexOf(r.id) + 1 + ' · ' : ''}${displayName(r.pokemon)}`}</Button>
+          ))}
+        </>
+      )}
       <Button
         primary
-        disabled={state.busy || !name.trim() || !members.length}
+        disabled={state.busy || !name.trim() || !arranged.length}
         onPress={async () => {
           const saved = {
             ...team,
             id: team?.id ?? Crypto.randomUUID(),
             name: name.trim(),
-            memberIDs: members,
+            memberIDs: arranged.map((p) => p.id),
           };
-          if (
-            await state.mutate((c, ctx) =>
-              updateMetadata(
-                c,
-                {
-                  teams: team
-                    ? (c.teams ?? []).map((t) => (t.id === team.id ? saved : t))
-                    : [...(c.teams ?? []), saved],
-                },
-                ctx,
-              ),
-            )
-          )
+          if (await state.mutate((c, ctx) => saveTeam(c, saved, ctx)))
             onClose();
         }}
       >
@@ -210,6 +265,7 @@ export function PersonalTeam({ id }: { id: string }) {
           </Button>
         </Panel>
       ))}
+      {kind === 'showdown' && <TeamNotebook team={team} />}
       <Button onPress={() => setDeleting(true)}>Delete team</Button>
       {edit && (
         <TeamEditor team={team} kind={kind} onClose={() => setEdit(false)} />
@@ -222,15 +278,7 @@ export function PersonalTeam({ id }: { id: string }) {
           <Button
             disabled={state.busy}
             onPress={async () => {
-              if (
-                await state.mutate((c, ctx) =>
-                  updateMetadata(
-                    c,
-                    { teams: (c.teams ?? []).filter((t) => t.id !== id) },
-                    ctx,
-                  ),
-                )
-              )
+              if (await state.mutate((c, ctx) => deleteTeam(c, id, ctx)))
                 router.replace('/competitive');
             }}
           >
@@ -239,6 +287,163 @@ export function PersonalTeam({ id }: { id: string }) {
         </EditorSheet>
       )}
     </View>
+  );
+}
+function TeamNotebook({ team }: { team: Team }) {
+  const state = useCollection(),
+    { ui } = useTheme(),
+    [name, setName] = useState(''),
+    [note, setNote] = useState(''),
+    [editing, setEditing] = useState<TeamBuild>(),
+    { message, error, run } = useRun();
+  return (
+    <View style={{ gap: 12 }}>
+      <PixelText style={ui.heading}>Build notebook</PixelText>
+      <PixelText>Named team versions</PixelText>
+      <Field label="Version name" value={name} onChange={setName} />
+      <Field label="Version notes (optional)" value={note} onChange={setNote} />
+      <Button
+        primary
+        disabled={state.busy || !name.trim()}
+        onPress={() =>
+          run(async () => {
+            if (
+              !(await state.mutate((c, ctx) =>
+                saveTeamVersion(
+                  c,
+                  team.id,
+                  { id: Crypto.randomUUID(), name, note },
+                  ctx,
+                ),
+              ))
+            )
+              return false;
+            setName('');
+            setNote('');
+          }, 'Version saved')
+        }
+      >
+        Save current build
+      </Button>
+      {!!message && <PixelText accessibilityRole="alert">{message}</PixelText>}
+      {!!error && <PixelText accessibilityRole="alert">{error}</PixelText>}
+      {teamVersions(team).map((v) => {
+        const differing = diffTeamVersion(state.collection!, team, v);
+        return (
+          <Panel key={v.id}>
+            <PixelText style={ui.heading}>{v.name}</PixelText>
+            {!!v.note && <PixelText>{v.note}</PixelText>}
+            <PixelText>
+              {`${differing} ${differing === 1 ? 'build differs' : 'builds differ'} from current team`}
+            </PixelText>
+            {v.members.map((m) => (
+              <PixelText key={m.id}>
+                {m.nickname || m.species} · {m.build.item}
+              </PixelText>
+            ))}
+            <View style={ui.row}>
+              <Button
+                label={`Apply ${v.name}`}
+                disabled={state.busy}
+                onPress={() =>
+                  run(
+                    () =>
+                      state.mutate(
+                        (c, ctx) => applyTeamVersion(c, team.id, v.id, ctx),
+                        'Team version applied. You can undo this change.',
+                      ),
+                    'Team version applied',
+                  )
+                }
+              >
+                Apply
+              </Button>
+              <Button label={`Notes ${v.name}`} onPress={() => setEditing(v)}>
+                Notes
+              </Button>
+              <Button
+                label={`Export ${v.name}`}
+                onPress={() =>
+                  run(
+                    () =>
+                      saveBackup(
+                        exportTeamVersion(v),
+                        'RibbonPassport-Team.txt',
+                      ),
+                    'Version exported',
+                  )
+                }
+              >
+                Export
+              </Button>
+              <Button
+                label={`Remove ${v.name}`}
+                disabled={state.busy}
+                onPress={() =>
+                  run(
+                    () =>
+                      state.mutate((c, ctx) =>
+                        removeTeamVersion(c, team.id, v.id, ctx),
+                      ),
+                    'Version removed',
+                  )
+                }
+              >
+                Remove
+              </Button>
+            </View>
+          </Panel>
+        );
+      })}
+      {editing && (
+        <TeamVersionNotes
+          teamID={team.id}
+          version={editing}
+          onClose={() => setEditing(undefined)}
+        />
+      )}
+    </View>
+  );
+}
+function TeamVersionNotes({
+  teamID,
+  version,
+  onClose,
+}: {
+  teamID: string;
+  version: TeamBuild;
+  onClose(): void;
+}) {
+  const state = useCollection(),
+    { ui } = useTheme(),
+    [name, setName] = useState(version.name),
+    [note, setNote] = useState(version.note);
+  return (
+    <EditorSheet title="Version notes" onClose={onClose}>
+      <Field label="Version name" value={name} onChange={setName} />
+      <PixelText>Version notes</PixelText>
+      <TextInput
+        accessibilityLabel="Version notes"
+        multiline
+        style={[ui.input, { minHeight: 140 }]}
+        value={note}
+        onChangeText={setNote}
+      />
+      <Button
+        primary
+        disabled={state.busy || !name.trim()}
+        onPress={async () => {
+          if (
+            await state.mutate((c, ctx) =>
+              editTeamVersion(c, teamID, version.id, { name, note }, ctx),
+            )
+          )
+            onClose();
+        }}
+      >
+        Save notes
+      </Button>
+    </EditorSheet>
   );
 }
 export function Build({ id }: { id: string }) {
@@ -298,6 +503,7 @@ export function Build({ id }: { id: string }) {
         </Button>
       </View>
       {!!error && <PixelText accessibilityRole="alert">{error}</PixelText>}
+      <BuildNotebook pokemon={p} expected={r.version.revision} />
       {editing && (
         <BuildEditor
           pokemon={p}
@@ -305,6 +511,135 @@ export function Build({ id }: { id: string }) {
           onClose={() => setEditing(false)}
         />
       )}
+    </View>
+  );
+}
+function BuildNotebook({
+  pokemon: p,
+  expected,
+}: {
+  pokemon: Pokemon;
+  expected: string;
+}) {
+  const state = useCollection(),
+    { ui } = useTheme(),
+    [name, setName] = useState(''),
+    [note, setNote] = useState(''),
+    [open, setOpen] = useState(''),
+    { message, error, run } = useRun(),
+    versions = savedBuilds(p),
+    current = p.showdownSet!;
+  return (
+    <View style={{ gap: 12 }}>
+      <PixelText style={ui.heading}>Build notebook</PixelText>
+      <Field label="Version name" value={name} onChange={setName} />
+      <Field label="Version notes (optional)" value={note} onChange={setNote} />
+      <Button
+        primary
+        disabled={state.busy || !name.trim()}
+        onPress={() =>
+          run(async () => {
+            if (
+              !(await state.mutate((c, ctx) =>
+                saveBuildVersion(
+                  c,
+                  p.id,
+                  { id: Crypto.randomUUID(), name, note },
+                  expected,
+                  ctx,
+                ),
+              ))
+            )
+              return false;
+            setName('');
+            setNote('');
+          }, 'Version saved')
+        }
+      >
+        Save current build
+      </Button>
+      {!!message && <PixelText accessibilityRole="alert">{message}</PixelText>}
+      {!!error && <PixelText accessibilityRole="alert">{error}</PixelText>}
+      {!versions.length && (
+        <PixelText>
+          No saved versions yet. Name the current build to keep it here.
+        </PixelText>
+      )}
+      {versions.map((v) => {
+        const differences = diffBuild(v.build, current);
+        return (
+          <Panel key={v.id}>
+            <PixelText style={ui.heading}>{v.name}</PixelText>
+            {!!v.note && <PixelText>{v.note}</PixelText>}
+            <PixelText>
+              {!differences.length
+                ? 'Matches current build'
+                : `${differences.length} ${differences.length === 1 ? 'field differs' : 'fields differ'} from current build`}
+            </PixelText>
+            {open === v.id &&
+              differences.map((d) => (
+                <PixelText key={d.label}>
+                  {d.label}: {d.saved || 'Not set'} → {d.current || 'Not set'}
+                </PixelText>
+              ))}
+            <View style={ui.row}>
+              <Button
+                label={`Compare ${v.name}`}
+                onPress={() => setOpen(open === v.id ? '' : v.id)}
+              >
+                {open === v.id ? 'Hide diff' : 'Diff'}
+              </Button>
+              <Button
+                label={`Apply ${v.name}`}
+                disabled={state.busy}
+                onPress={() =>
+                  run(
+                    () =>
+                      state.mutate(
+                        (c, ctx) =>
+                          applyBuildVersion(c, p.id, v.id, expected, ctx),
+                        'Version applied. You can undo this change.',
+                      ),
+                    'Version applied',
+                  )
+                }
+              >
+                Apply
+              </Button>
+              <Button
+                label={`Export ${v.name}`}
+                onPress={() =>
+                  run(
+                    () =>
+                      saveBackup(
+                        exportBuildVersion(p, v.id),
+                        'RibbonPassport-Build.txt',
+                      ),
+                    'Version exported',
+                  )
+                }
+              >
+                Export Showdown
+              </Button>
+              <Button
+                label={`Remove ${v.name}`}
+                disabled={state.busy}
+                onPress={() =>
+                  run(
+                    () =>
+                      state.mutate((c, ctx) =>
+                        removeBuildVersion(c, p.id, v.id, expected, ctx),
+                      ),
+                    'Version removed',
+                  )
+                }
+              >
+                Remove
+              </Button>
+            </View>
+          </Panel>
+        );
+      })}
     </View>
   );
 }
