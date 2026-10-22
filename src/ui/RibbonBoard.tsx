@@ -23,6 +23,7 @@ import {
   nextPageSize,
   validPageSize,
   ribbonView,
+  tileStatus,
   type RibbonCategory,
 } from '../domain/ribbon-view';
 import type { Pokemon } from '../domain/model';
@@ -174,68 +175,101 @@ export function RibbonBoard({
         style={{
           flexDirection: 'row',
           flexWrap: 'wrap',
-          gap: 5,
+          gap: 6,
           minHeight: 220,
         }}
       >
         {ids.slice(visiblePage * size, (visiblePage + 1) * size).map((id) => {
           const has = p.ribbons.includes(id) || owned.includes(id),
-            last = check.lastChance.includes(id);
+            last = check.lastChance.includes(id),
+            status = tileStatus(p, id, game, { owned: has, lastChance: last });
           return (
-            <Pressable
+            <View
               key={id}
-              accessibilityRole="button"
-              accessibilityLabel={`Details for ${awardName(id)}`}
-              onPress={() => detail(id)}
               style={{
-                width: size === 24 ? '15.1%' : '31.8%',
-                minHeight: size === 24 ? 63 : 100,
+                flexGrow: 1,
+                flexBasis: 104,
+                minWidth: 96,
+                maxWidth: 220,
                 borderWidth: 1,
-                borderColor: last ? colors.warningInk : colors.border,
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: last ? colors.warning : colors.panel,
-                paddingTop: 5,
+                borderColor: last
+                  ? colors.warningInk
+                  : has
+                    ? colors.accent
+                    : colors.border,
+                backgroundColor: last
+                  ? colors.warning
+                  : has
+                    ? colors.board
+                    : colors.panel,
               }}
             >
-              {last && (
-                <View
-                  accessible={false}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: 15,
-                    height: 17,
-                    alignItems: 'center',
-                    backgroundColor: colors.warningInk,
-                  }}
-                >
-                  <PixelText style={{ fontSize: 12, color: colors.warning }}>
-                    !
-                  </PixelText>
-                </View>
-              )}
-              <Art name={'award-' + id} size={size === 24 ? 31 : 48} />
-              <View
-                style={{
-                  borderTopWidth: 1,
-                  borderColor: colors.border,
-                  width: '100%',
-                  alignItems: 'center',
-                  paddingVertical: 4,
-                }}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Details for ${awardName(id)}`}
+                onPress={() => detail(id)}
+                style={{ alignItems: 'center', padding: 6, gap: 3 }}
               >
+                <Art name={'award-' + id} size={40} />
                 <PixelText
+                  numberOfLines={2}
                   style={{
-                    fontSize: 16,
+                    fontSize: 13,
+                    textAlign: 'center',
                     color: last ? colors.warningInk : colors.ink,
                   }}
                 >
-                  {has ? '✓' : '+'}
+                  {awardName(id)}
                 </PixelText>
-              </View>
-            </Pressable>
+                <PixelText
+                  style={{
+                    fontSize: 11,
+                    color: last
+                      ? colors.warningInk
+                      : has
+                        ? colors.accent
+                        : colors.muted,
+                  }}
+                >
+                  {status.optional && !has
+                    ? `${status.label} · OPT`
+                    : status.label}
+                </PixelText>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  status.action === 'record'
+                    ? `Record ${awardName(id)} in ${gameName(game)}`
+                    : status.action === 'remove'
+                      ? `Remove ${awardName(id)}`
+                      : `Open ${awardName(id)}`
+                }
+                disabled={state.busy}
+                onPress={() =>
+                  status.action === 'record'
+                    ? state.change(p.id, id, game)
+                    : status.action === 'remove'
+                      ? state.change(p.id, id)
+                      : detail(id)
+                }
+                style={{
+                  borderTopWidth: 1,
+                  borderColor: colors.border,
+                  paddingVertical: 6,
+                  alignItems: 'center',
+                  opacity: state.busy ? 0.5 : 1,
+                }}
+              >
+                <PixelText style={{ fontSize: 13 }}>
+                  {status.action === 'record'
+                    ? '+ Record'
+                    : status.action === 'remove'
+                      ? '− Remove'
+                      : 'Details ›'}
+                </PixelText>
+              </Pressable>
+            </View>
           );
         })}
         {!ids.length && (

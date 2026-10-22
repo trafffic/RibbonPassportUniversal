@@ -63,3 +63,24 @@ test('Set game assigns an unknown earning game from the same generation and can 
   await expect(page.getByText('Earned in: Brilliant Diamond')).toBeVisible();
   await expect(button(page, 'Set game Brilliant Diamond')).toHaveCount(0);
 });
+test('a ribbon tile records and removes in one tap, and undo restores it', async ({
+  page,
+}) => {
+  await demo(page, passport);
+  await passportTab(page, 'Ribbons').click();
+  const quick = page
+    .getByRole('button', { name: /^Record .+ in .+/ })
+    .filter({ visible: true })
+    .first();
+  await expect(quick).toBeVisible();
+  await quick.click();
+  await expect(
+    page.getByText('Ribbon recorded.', { exact: true }).first(),
+  ).toBeVisible();
+  await expect(button(page, 'Owned (11)')).toBeVisible();
+  await button(page, 'Undo last change').click();
+  await expect(
+    page.getByText('Change undone.', { exact: true }).first(),
+  ).toBeVisible();
+  await expect(button(page, 'Owned (10)')).toBeVisible();
+});
