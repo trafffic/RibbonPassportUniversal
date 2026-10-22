@@ -93,7 +93,7 @@ export function RibbonBoard({
           <GameLabel game={game} />
           <PixelText style={{ fontSize: 11, color: colors.muted }}>
             GEN {roman(ruleData.games[game]?.gen)} ·{' '}
-            {game === p.currentgame ? 'Current game' : 'Planning view'}
+            {game === p.currentgame ? 'Current game' : `Browsing, not its current game`}
           </PixelText>
         </View>
         <Button onPress={() => setSheet('games')}>Browse game</Button>
@@ -168,7 +168,7 @@ export function RibbonBoard({
             setPage(0);
           }}
           label={`${size} ribbons per page. Change to ${nextPageSize(size)}`}
-        >{`${size}/pg`}</Button>
+        >{`${size} per page`}</Button>
       </View>
       <View
         style={{
@@ -241,7 +241,7 @@ export function RibbonBoard({
         {!ids.length && (
           <PixelText style={{ color: colors.muted }}>
             {game
-              ? 'No unearned ribbons in this selection.'
+              ? 'Nothing left to earn here. Try All games or Later gens.'
               : 'Set a current game to choose ribbons.'}
           </PixelText>
         )}
@@ -270,7 +270,7 @@ export function RibbonBoard({
       <View style={ui.row}>
         <Button
           onPress={() => setSheet('owned')}
-        >{`Owned · ${owned.length} ▴`}</Button>
+        >{`Owned (${owned.length})`}</Button>
         <Button onPress={() => setSheet('size')}>Size marks</Button>
       </View>
       {sheet === 'games' && (
@@ -292,7 +292,7 @@ export function RibbonBoard({
         </EditorSheet>
       )}
       {sheet === 'transfer' && (
-        <TransferSheet pokemon={p} onClose={() => setSheet('')} />
+        <TransferSheet pokemon={p} from={game} onClose={() => setSheet('')} />
       )}
       {sheet === 'size' && (
         <EditorSheet title="Size marks" onClose={() => setSheet('')}>
@@ -385,7 +385,7 @@ export function RibbonBoard({
                                 await state.mutate(
                                   (c, context) =>
                                     assignGame(c, p.id, selected, g, context),
-                                  'Earning game saved. Saved on this device.',
+                                  'Earning game saved.',
                                 )
                               )
                                 setSelected('');

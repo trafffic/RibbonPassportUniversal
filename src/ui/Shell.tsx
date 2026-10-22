@@ -199,7 +199,7 @@ export function Shell({ children }: React.PropsWithChildren) {
                 },
               ]}
             >
-              <PixelText style={ui.label}>● LOCAL COLLECTION</PixelText>
+              <PixelText style={ui.label}>Saved on this device · Export backup in Settings</PixelText>
               <View style={ui.row}>
                 <Button onPress={() => router.push("/library")}>
                   Team library

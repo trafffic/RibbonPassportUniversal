@@ -57,13 +57,13 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
   await record(page, 'Alert Ribbon');
   await expect(
     page
-      .getByText('Ribbon recorded. Saved on this device.', { exact: true })
+      .getByText('Ribbon recorded.', { exact: true })
       .filter({ visible: true }),
   ).toBeVisible();
   await button(page, 'Undo last change').click();
   await expect(
     page
-      .getByText('Change undone. Saved on this device.', { exact: true })
+      .getByText('Change undone.', { exact: true })
       .filter({ visible: true }),
   ).toBeVisible();
   await record(page, 'Alert Ribbon');

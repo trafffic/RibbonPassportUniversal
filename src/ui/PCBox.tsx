@@ -250,7 +250,7 @@ export function PCBox({
         ...next,
         boxes: next.boxes.map((b) => (b.id === id ? { ...b, kind } : b)),
       };
-    }, 'Box created. Saved on this device.');
+    }, 'Box created.');
   };
   const choose = async (slot: number, id?: string | null) => {
     if (moving) {

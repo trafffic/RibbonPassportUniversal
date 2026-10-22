@@ -393,7 +393,7 @@ export function PokemonEditor({
         primary={met !== undefined}
         onPress={() => setMet(met === undefined ? level : undefined)}
       >
-        {met === undefined ? 'Met level unknown' : 'Met level known ✓'}
+        {met === undefined ? 'Met level unknown' : 'Met level known'}
       </Button>
       {met !== undefined && (
         <NumberStepper
@@ -421,14 +421,14 @@ export function PokemonEditor({
             primary={draft.gmax}
             onPress={() => update('gmax', !draft.gmax)}
           >
-            {draft.gmax ? 'Gigantamax: on' : 'Gigantamax: off'}
+            {draft.gmax ? 'Gigantamax' : 'Not Gigantamax'}
           </Button>
         )}
         <Button
           primary={draft.shadow}
           onPress={() => update('shadow', !draft.shadow)}
         >
-          {draft.shadow ? 'Shadow origin: on' : 'Shadow origin: off'}
+          {draft.shadow ? 'Shadow origin' : 'Not shadow origin'}
         </Button>
       </View>
       <ChoiceField

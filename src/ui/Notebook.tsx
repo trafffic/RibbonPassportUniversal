@@ -276,7 +276,7 @@ export function Notebook({
               primary={draft.homeChecked}
               onPress={() => update({ homeChecked: !draft.homeChecked })}
             >
-              {draft.homeChecked ? 'HOME checked ✓' : 'Not checked in HOME'}
+              {draft.homeChecked ? 'Checked in Pokémon HOME' : 'Not checked in Pokémon HOME'}
             </Button>
           )}
           {'earned' in draft && (

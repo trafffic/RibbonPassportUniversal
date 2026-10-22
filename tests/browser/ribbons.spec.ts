@@ -51,14 +51,14 @@ test('Set game assigns an unknown earning game from the same generation and can 
   await importText(page, unknownGame);
   await page.goto('/passport/p1');
   await passportTab(page, 'Ribbons').click();
-  await button(page, 'Owned · 1 ▴').click();
+  await button(page, 'Owned (1)').click();
   await button(page, 'Details for Effort Ribbon').click();
   await expect(page.getByText('Gen 8 · Game not set').first()).toBeVisible();
   await button(page, 'Set game Brilliant Diamond').click();
   await expect(
-    page.getByText('Earning game saved. Saved on this device.').first(),
+    page.getByText('Earning game saved.').first(),
   ).toBeVisible();
-  await button(page, 'Owned · 1 ▴').click();
+  await button(page, 'Owned (1)').click();
   await button(page, 'Details for Effort Ribbon').click();
   await expect(page.getByText('Earned in: Brilliant Diamond')).toBeVisible();
   await expect(button(page, 'Set game Brilliant Diamond')).toHaveCount(0);
