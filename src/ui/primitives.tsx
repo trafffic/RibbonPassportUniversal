@@ -19,6 +19,7 @@ import { displayName, spriteKey, gameName } from '../domain/catalog';
 import type { Pokemon } from '../domain/model';
 import { gameColour } from '../domain/game-colours';
 import { clampInt, isoToday } from './form-logic';
+import { useLayout } from './layout';
 export function PixelText({ style, ...props }: TextProps) {
   const { colors, ui, dark } = useTheme();
   return (
@@ -43,6 +44,7 @@ export function Button({
   art?: string;
 }) {
   const { colors, ui, dark } = useTheme();
+  const { isTablet } = useLayout();
   return (
     <Pressable
       testID={testID}
@@ -53,8 +55,13 @@ export function Button({
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered, focused }: any) => [
         styles.button,
+        // Wide screens: size to content instead of stretching across the column.
+        isTablet && { alignSelf: 'flex-start' as const },
+        Platform.OS === 'web' && ({ cursor: disabled ? 'default' : 'pointer' } as any),
+        hovered && !disabled && { opacity: 0.85 },
+        focused && { borderWidth: 2 },
         {
           borderColor: colors.border,
           backgroundColor: primary ? colors.accent : colors.panel,

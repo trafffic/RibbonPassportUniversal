@@ -1,11 +1,11 @@
-import React from 'react';
-import { ScrollView, View, Pressable, useWindowDimensions } from 'react-native';
-import { usePathname, useRouter, useLocalSearchParams } from 'expo-router';
-import { useCollection } from '../state/CollectionProvider';
-import { useTheme } from './theme';
-import { Art, Button, Panel, PixelText } from './primitives';
-import { BackupPanel } from './BackupPanel';
-import { TerminalGlyph } from './TerminalGlyph';
+import React from "react";
+import { ScrollView, View, Pressable, useWindowDimensions } from "react-native";
+import { usePathname, useRouter, useLocalSearchParams } from "expo-router";
+import { useCollection } from "../state/CollectionProvider";
+import { useTheme } from "./theme";
+import { Art, Button, Panel, PixelText } from "./primitives";
+import { BackupPanel } from "./BackupPanel";
+import { TerminalGlyph } from "./TerminalGlyph";
 export function Shell({ children }: React.PropsWithChildren) {
   const router = useRouter(),
     path = usePathname(),
@@ -15,7 +15,7 @@ export function Shell({ children }: React.PropsWithChildren) {
     { colors, ui } = useTheme();
   const team = state.collection?.teams?.find((t) => t.id === params.id);
   const ribbonTeams =
-    params.kind === 'ribbon' ||
+    params.kind === "ribbon" ||
     (team &&
       team.memberIDs.every(
         (id) =>
@@ -24,26 +24,26 @@ export function Shell({ children }: React.PropsWithChildren) {
       ));
   const phone = width < 700,
     active =
-      path.startsWith('/competitive') ||
-      (path.startsWith('/teams') && !ribbonTeams) ||
-      path.startsWith('/build') ||
-      path.startsWith('/import-showdown') ||
-      path.startsWith('/library')
-        ? 'Competitive'
-        : path.startsWith('/settings') || path.startsWith('/recovery')
-          ? 'Settings'
-          : 'Ribbons';
+      path.startsWith("/competitive") ||
+      (path.startsWith("/teams") && !ribbonTeams) ||
+      path.startsWith("/build") ||
+      path.startsWith("/import-showdown") ||
+      path.startsWith("/library")
+        ? "Competitive"
+        : path.startsWith("/settings") || path.startsWith("/recovery")
+          ? "Settings"
+          : "Ribbons";
   const nav = [
-    ['Ribbons', '/', 'award-earth-ribbon'],
-    ['Competitive', '/competitive', 'award-winning-ribbon'],
-    ['Settings', '/settings', ''],
+    ["Ribbons", "/", "award-earth-ribbon"],
+    ["Competitive", "/competitive", "award-winning-ribbon"],
+    ["Settings", "/settings", ""],
   ];
   const dock = (
     <View
       accessibilityRole="tablist"
       accessibilityLabel="Main navigation"
       style={{
-        flexDirection: 'row',
+        flexDirection: "row",
         gap: 6,
         paddingHorizontal: phone ? 12 : 0,
         paddingTop: phone ? 8 : 0,
@@ -63,8 +63,8 @@ export function Shell({ children }: React.PropsWithChildren) {
           style={{
             flex: phone ? 1 : undefined,
             minWidth: phone ? 0 : 95,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             paddingHorizontal: phone ? 4 : 14,
             height: phone ? 56 : undefined,
             paddingVertical: phone ? 0 : 10,
@@ -77,17 +77,17 @@ export function Shell({ children }: React.PropsWithChildren) {
                 ? colors.accent
                 : phone
                   ? colors.panel
-                  : 'transparent',
+                  : "transparent",
           }}
         >
           {phone && (
             <TerminalGlyph
               kind={
-                label === 'Ribbons'
-                  ? 'ribbons'
-                  : label === 'Competitive'
-                    ? 'competitive'
-                    : 'settings'
+                label === "Ribbons"
+                  ? "ribbons"
+                  : label === "Competitive"
+                    ? "competitive"
+                    : "settings"
               }
               color={active === label ? colors.paper : colors.muted}
             />
@@ -118,8 +118,8 @@ export function Shell({ children }: React.PropsWithChildren) {
               ui.between,
               {
                 maxWidth: 1320,
-                width: '100%',
-                alignSelf: 'center',
+                width: "100%",
+                alignSelf: "center",
                 paddingHorizontal: 24,
                 paddingVertical: 16,
               },
@@ -140,8 +140,8 @@ export function Shell({ children }: React.PropsWithChildren) {
         <View
           style={{
             maxWidth: 1320,
-            width: '100%',
-            alignSelf: 'center',
+            width: "100%",
+            alignSelf: "center",
             padding: phone ? 16 : 24,
             gap: 18,
             flexGrow: 1,
@@ -170,13 +170,13 @@ export function Shell({ children }: React.PropsWithChildren) {
               <View style={ui.row}>
                 <Button
                   disabled={state.busy}
-                  onPress={() => state.resolveConflict('ours')}
+                  onPress={() => state.resolveConflict("ours")}
                 >
                   Keep this window’s version
                 </Button>
                 <Button
                   disabled={state.busy}
-                  onPress={() => state.resolveConflict('theirs')}
+                  onPress={() => state.resolveConflict("theirs")}
                 >
                   Keep other window’s version
                 </Button>
@@ -187,29 +187,6 @@ export function Shell({ children }: React.PropsWithChildren) {
           {state.collection
             ? children
             : !state.error && <PixelText>Opening your collection…</PixelText>}
-          {(!!state.notice || state.canUndo) && (
-            <View
-              accessibilityLiveRegion="polite"
-              style={[
-                ui.between,
-                {
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  backgroundColor: colors.panel,
-                },
-              ]}
-            >
-              <PixelText style={{ fontSize: 14, flex: 1 }}>
-                {state.notice || 'Your last change can be undone.'}
-              </PixelText>
-              {state.canUndo && (
-                <Button disabled={state.busy} onPress={state.undo}>
-                  Undo last change
-                </Button>
-              )}
-            </View>
-          )}
           {!phone && (
             <View
               style={[
@@ -224,10 +201,10 @@ export function Shell({ children }: React.PropsWithChildren) {
             >
               <PixelText style={ui.label}>● LOCAL COLLECTION</PixelText>
               <View style={ui.row}>
-                <Button onPress={() => router.push('/library')}>
+                <Button onPress={() => router.push("/library")}>
                   Team library
                 </Button>
-                <Button onPress={() => router.push('/guides')}>
+                <Button onPress={() => router.push("/guides")}>
                   Field guides
                 </Button>
               </View>
@@ -235,6 +212,29 @@ export function Shell({ children }: React.PropsWithChildren) {
           )}
         </View>
       </ScrollView>
+      {(!!state.notice || state.canUndo) && (
+        <View
+          accessibilityLiveRegion="polite"
+          style={[
+            ui.between,
+            {
+              padding: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.panel,
+            },
+          ]}
+        >
+          <PixelText style={{ fontSize: 14, flex: 1 }}>
+            {state.notice || "Your last change can be undone."}
+          </PixelText>
+          {state.canUndo && (
+            <Button disabled={state.busy} onPress={state.undo}>
+              Undo last change
+            </Button>
+          )}
+        </View>
+      )}
       {phone && dock}
     </View>
   );

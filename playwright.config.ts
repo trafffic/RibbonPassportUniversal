@@ -9,6 +9,7 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:8081', browserName: 'chromium', screenshot: 'only-on-failure', trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop', use: { viewport: { width: 1440, height: 1000 } } },
+    { name: 'ultrawide', use: { viewport: { width: 1920, height: 1080 } } },
     { name: 'phone', use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } },
     { name: 'small-phone', use: { viewport: { width: 320, height: 740 }, isMobile: true, hasTouch: true } },
     { name: 'tablet', use: { viewport: { width: 820, height: 1180 }, hasTouch: true } },
