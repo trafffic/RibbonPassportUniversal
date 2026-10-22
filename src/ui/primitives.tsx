@@ -20,13 +20,24 @@ import type { Pokemon } from '../domain/model';
 import { gameColour } from '../domain/game-colours';
 import { clampInt, isoToday } from './form-logic';
 import { useLayout } from './layout';
+import { useDensity } from './density';
 import { spriteSources } from '../domain/sprite-sources';
 import { resolveSprite } from './sprite-cache';
 import { consoleKey, itemKey, tintHex } from '../domain/art-ui';
 export function PixelText({ style, ...props }: TextProps) {
-  const { colors, ui, dark } = useTheme();
+  const { colors } = useTheme();
+  const density = useDensity();
+  const flat = density === 1 ? undefined : StyleSheet.flatten(style);
   return (
-    <Text {...props} style={[styles.text, { color: colors.ink }, style]} />
+    <Text
+      {...props}
+      style={[
+        styles.text,
+        { color: colors.ink },
+        style,
+        flat && { fontSize: (flat.fontSize ?? 18) * density },
+      ]}
+    />
   );
 }
 export function Button({
@@ -48,6 +59,7 @@ export function Button({
 }) {
   const { colors, ui, dark } = useTheme();
   const { isTablet } = useLayout();
+  const density = useDensity();
   return (
     <Pressable
       testID={testID}
@@ -60,6 +72,11 @@ export function Button({
       onPress={onPress}
       style={({ pressed, hovered, focused }: any) => [
         styles.button,
+        density !== 1 && {
+          minHeight: 46 * density,
+          paddingVertical: 11 * density,
+          paddingHorizontal: 16 * density,
+        },
         // Wide screens: size to content instead of stretching across the column.
         isTablet && { alignSelf: 'flex-start' as const },
         Platform.OS === 'web' && ({ cursor: disabled ? 'default' : 'pointer' } as any),

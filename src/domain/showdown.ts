@@ -162,3 +162,16 @@ export function importShowdownTeam(
     selectedTeamID: teamID,
   };
 }
+
+export const statLabels = ['HP', 'Attack', 'Defense', 'Sp. Atk', 'Sp. Def', 'Speed'];
+/** "252 Atk / 4 HP" → six values in HP..Spe order, others `fallback` (iPhone ShowdownStats). */
+export function statValues(text: string, fallback: number): number[] {
+  const keys = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+  const result = Array(6).fill(fallback) as number[];
+  for (const chunk of text.split('/')) {
+    const m = /^(\d+)\s+(\S+)$/.exec(chunk.trim());
+    const i = m ? keys.indexOf(m[2]!.toLowerCase()) : -1;
+    if (m && i >= 0) result[i] = Number(m[1]);
+  }
+  return result;
+}
