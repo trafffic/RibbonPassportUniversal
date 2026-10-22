@@ -9,6 +9,7 @@ import {
   download,
   importText,
   options,
+  demo,
 } from './helpers';
 const passport = '/passport/sample-collection-v1-pokemon-4';
 test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journey, offline restore and export', async ({
@@ -17,7 +18,7 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
 }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/');
+  await demo(page);
   await expect(button(page, 'Select Sparky')).toBeVisible();
   for (let i = 1; i <= 6; i++) {
     const slot = page.getByTestId('pc-slot-' + i),
@@ -94,7 +95,7 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
 test('quota failure leaves ownership unchanged after reopening', async ({
   page,
 }) => {
-  await page.goto(passport);
+  await demo(page, passport);
   await passportTab(page, 'Ribbons').click();
   await button(page, 'Details for Alert Ribbon').click();
   await button(page, 'Alpha Sapphire').click();
@@ -128,7 +129,7 @@ test('offline conflicts preserve both branches and remain unresolved after reope
   page,
   context,
 }) => {
-  await page.goto(passport);
+  await demo(page, passport);
   await expect(passportTab(page, 'Ribbons')).toBeVisible();
   const other = await context.newPage();
   await other.goto(passport);

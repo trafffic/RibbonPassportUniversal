@@ -1,7 +1,8 @@
 import { openDatabaseAsync } from 'expo-sqlite';
 import { validateCollection } from '../backup/codec';
 import type { Collection } from '../domain/model';
-import { contentChanged } from './types';
+import { mergeRecovery } from '../domain/recovery';
+import { contentChanged, parseRecovery, parseRecoveryOrEmpty } from './types';
 import { StorageConflict, type CollectionStore } from './types';
 
 const database = async () => {
@@ -20,6 +21,14 @@ export const collectionStore: CollectionStore = {
       "SELECT json FROM documents WHERE id LIKE 'archive:%' OR id LIKE 'conflict:%' ORDER BY rowid DESC",
     );
     return rows.map((row) => validateCollection(JSON.parse(row.json)));
+  },
+  async recovery() {
+    const db = await open();
+    const row = await db.getFirstAsync<{ json: string }>(
+      'SELECT json FROM documents WHERE id = ?',
+      'recovery',
+    );
+    return parseRecovery(row?.json);
   },
   async load() {
     const db = await open();
@@ -43,7 +52,7 @@ export const collectionStore: CollectionStore = {
         )
       : null;
   },
-  async commit(next, expectedRevision, resolveConflict = false) {
+  async commit(next, expectedRevision, resolveConflict = false, recovery = []) {
     const db = await open();
     let conflict: StorageConflict | undefined;
     await db.withExclusiveTransactionAsync(async (transaction) => {
@@ -78,6 +87,17 @@ export const collectionStore: CollectionStore = {
             `archive:${current.id}:${current.revision}`,
             row!.json,
           );
+        if (recovery.length) {
+          const saved = await transaction.getFirstAsync<{ json: string }>(
+            'SELECT json FROM documents WHERE id = ?',
+            'recovery',
+          );
+          await transaction.runAsync(
+            'INSERT OR REPLACE INTO documents (id, json) VALUES (?, ?)',
+            'recovery',
+            JSON.stringify(mergeRecovery(parseRecoveryOrEmpty(saved?.json), recovery)),
+          );
+        }
         await transaction.runAsync(
           'INSERT OR REPLACE INTO documents (id, json) VALUES (?, ?)',
           'collection',

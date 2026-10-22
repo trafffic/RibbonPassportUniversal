@@ -4,6 +4,8 @@ import type {
   Collection,
   PassportRecord,
   Pokemon,
+  Team,
+  ShowdownSet,
   Visit,
 } from '../domain/model';
 import { editableFields } from '../domain/organisation';
@@ -40,6 +42,112 @@ export function parseJSON(text: string): unknown {
   }
 }
 export const serializeJSON = (value: unknown) => stringify(value, null, 2)!;
+function showdownProjection(v: Obj): ShowdownSet {
+  return {
+    item: textValue(v.item),
+    ability: textValue(v.ability),
+    nature: textValue(v.nature),
+    evs: textValue(v.evs),
+    ivs: textValue(v.ivs),
+    teraType: textValue(v.teraType),
+    moves: stringArray(v.moves) ? v.moves : [],
+    ...(stringArray(v.extraLines) ? { extraLines: v.extraLines } : {}),
+  };
+}
+function teamProjection(t: Obj): Team {
+  return {
+    id: textValue(t.id),
+    name: textValue(t.name),
+    memberIDs: stringArray(t.memberIDs) ? t.memberIDs : [],
+    ...(stringArray(t.communitySourceIDs)
+      ? { communitySourceIDs: t.communitySourceIDs }
+      : {}),
+    ...(Array.isArray(t.savedBuilds)
+      ? {
+          savedBuilds: t.savedBuilds.flatMap((v) =>
+            object(v) && typeof v.id === 'string' && Array.isArray(v.members)
+              ? [
+                  {
+                    id: v.id,
+                    name: textValue(v.name),
+                    note: textValue(v.note),
+                    sourceIDs: stringArray(v.sourceIDs) ? v.sourceIDs : [],
+                    members: v.members.flatMap((m) =>
+                      object(m) && typeof m.id === 'string' && object(m.build)
+                        ? [
+                            {
+                              id: m.id,
+                              species: textValue(m.species),
+                              nickname: textValue(m.nickname),
+                              build: showdownProjection(m.build),
+                              ...(numeric(m.level) !== undefined
+                                ? { level: numeric(m.level) }
+                                : {}),
+                              ...(typeof m.game === 'string'
+                                ? { game: m.game }
+                                : {}),
+                              ...(typeof m.gender === 'string'
+                                ? { gender: m.gender }
+                                : {}),
+                              ...(typeof m.shiny === 'boolean'
+                                ? { shiny: m.shiny }
+                                : {}),
+                              ...(typeof m.gmax === 'boolean'
+                                ? { gmax: m.gmax }
+                                : {}),
+                            },
+                          ]
+                        : [],
+                    ),
+                  },
+                ]
+              : [],
+          ),
+        }
+      : {}),
+  };
+}
+const mergeRows = <T extends { id: string }>(
+  old: unknown[],
+  rows: T[],
+  valid: (o: unknown) => o is Obj,
+  merge: (old: Obj | undefined, row: T) => unknown,
+) => [
+  ...rows.map((row) =>
+    merge(
+      old.find((o): o is Obj => valid(o) && o.id === row.id),
+      row,
+    ),
+  ),
+  ...old.filter((o) => !valid(o)),
+];
+// Keeps fields this app does not model, and malformed entries it dropped on import.
+function mergeTeam(old: Obj | undefined, team: Team): Obj {
+  const next: Obj = { ...old, ...team };
+  if (team.savedBuilds && Array.isArray(old?.savedBuilds))
+    next.savedBuilds = mergeRows(
+      old.savedBuilds as unknown[],
+      team.savedBuilds,
+      (o): o is Obj =>
+        object(o) && typeof o.id === 'string' && Array.isArray(o.members),
+      (oldV, v) => ({
+        ...oldV,
+        ...v,
+        members: mergeRows(
+          Array.isArray(oldV?.members) ? (oldV.members as unknown[]) : [],
+          v.members,
+          (o): o is Obj =>
+            object(o) && typeof o.id === 'string' && object(o.build),
+          (oldM, m) => ({
+            ...oldM,
+            ...m,
+            build: { ...(object(oldM?.build) ? oldM.build : {}), ...m.build },
+          }),
+        ),
+      }),
+    );
+  return next;
+}
 function normalize(entry: Obj, id: string): Pokemon {
   const extras = (key: string, fields: string[]) =>
     Array.isArray(entry[key])
@@ -121,22 +229,7 @@ function normalize(entry: Obj, id: string): Pokemon {
     ball: typeof entry.ball === 'string' ? entry.ball : undefined,
     ...(typeof entry.source === 'string' ? { source: entry.source } : {}),
     ...(object(entry.showdownSet)
-      ? {
-          showdownSet: {
-            item: textValue(entry.showdownSet.item),
-            ability: textValue(entry.showdownSet.ability),
-            nature: textValue(entry.showdownSet.nature),
-            evs: textValue(entry.showdownSet.evs),
-            ivs: textValue(entry.showdownSet.ivs),
-            teraType: textValue(entry.showdownSet.teraType),
-            moves: stringArray(entry.showdownSet.moves)
-              ? entry.showdownSet.moves
-              : [],
-            ...(stringArray(entry.showdownSet.extraLines)
-              ? { extraLines: entry.showdownSet.extraLines }
-              : {}),
-          },
-        }
+      ? { showdownSet: showdownProjection(entry.showdownSet) }
       : {}),
     ...(stringArray(entry.communitySourceIDs)
       ? { communitySourceIDs: entry.communitySourceIDs }
@@ -166,6 +259,23 @@ function normalize(entry: Obj, id: string): Pokemon {
             'text',
             'photo',
           ]) as unknown as Pokemon['journal'],
+        }
+      : {}),
+    ...(Array.isArray(entry.savedBuilds)
+      ? {
+          savedBuilds: entry.savedBuilds.flatMap((v) =>
+            object(v) && typeof v.id === 'string' && object(v.build)
+              ? [
+                  {
+                    id: v.id,
+                    name: textValue(v.name),
+                    build: showdownProjection(v.build),
+                    note: textValue(v.note),
+                    sourceIDs: stringArray(v.sourceIDs) ? v.sourceIDs : [],
+                  },
+                ]
+              : [],
+          ),
         }
       : {}),
     ...(Array.isArray(entry.moveNotes)
@@ -421,14 +531,7 @@ export function importBackup(
     selectedBoxID: boxes[0]!.id,
     operations: [],
     teams: Array.isArray(container.teams)
-      ? container.teams.filter(teamRow).map((t) => ({
-          id: textValue(t.id),
-          name: textValue(t.name),
-          memberIDs: stringArray(t.memberIDs) ? t.memberIDs : [],
-          ...(stringArray(t.communitySourceIDs)
-            ? { communitySourceIDs: t.communitySourceIDs }
-            : {}),
-        }))
+      ? container.teams.filter(teamRow).map(teamProjection)
       : [],
     ...(object(container.sourceNotes)
       ? {
@@ -479,6 +582,7 @@ export function validateCollection(value: Collection): Collection {
     'honors',
     'journal',
     'moveNotes',
+    'savedBuilds',
     'showdownSet',
     'source',
     'communitySourceIDs',
@@ -548,11 +652,7 @@ export function validateCollection(value: Collection): Collection {
       ? root.collection
       : root;
   if (value.teams === undefined && Array.isArray(metadata.teams))
-    value.teams = metadata.teams.filter(teamRow).map((t) => ({
-      id: textValue(t.id),
-      name: textValue(t.name),
-      memberIDs: stringArray(t.memberIDs) ? t.memberIDs : [],
-    }));
+    value.teams = metadata.teams.filter(teamRow).map(teamProjection);
   if (value.sourceNotes === undefined && object(metadata.sourceNotes))
     value.sourceNotes = Object.fromEntries(
       Object.entries(metadata.sourceNotes).filter(
@@ -616,21 +716,30 @@ export function exportSource(collection: Collection): string {
             delete map[id];
         entry[key] = map;
       } else if (
-        ['honors', 'journal', 'moveNotes'].includes(key) &&
+        ['honors', 'journal', 'moveNotes', 'savedBuilds'].includes(key) &&
         Array.isArray(val)
       ) {
         const original = Array.isArray(entry[key])
           ? (entry[key] as unknown[])
           : [];
         entry[key] = [
-          ...val.map((row) => ({
-            ...(original.find(
+          ...val.map((row) => {
+            const old = original.find(
               (old) => object(old) && old.id === row.id,
-            ) as Obj),
-            ...row,
-          })),
+            ) as Obj | undefined;
+            return {
+              ...old,
+              ...row,
+              ...(key === 'savedBuilds' && object(old?.build)
+                ? { build: { ...old.build, ...row.build } }
+                : {}),
+            };
+          }),
           ...original.filter(
-            (old) => !object(old) || typeof old.id !== 'string',
+            (old) =>
+              !object(old) ||
+              typeof old.id !== 'string' ||
+              (key === 'savedBuilds' && !object(old.build)),
           ),
         ];
       } else if (key === 'visits' && Array.isArray(val)) {
@@ -700,7 +809,7 @@ export function exportSource(collection: Collection): string {
           const old = originalTeams.find(
             (t) => object(t) && t.id === team.id,
           ) as Obj | undefined;
-          const next: Obj = { ...old, ...team };
+          const next = mergeTeam(old, team);
           if (old && !stringArray(old.memberIDs) && !team.memberIDs.length)
             next.memberIDs = old.memberIDs;
           return next;

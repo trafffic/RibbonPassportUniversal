@@ -1,6 +1,7 @@
 import { validateCollection } from '../backup/codec';
 import type { Collection } from '../domain/model';
-import { contentChanged } from './types';
+import { mergeRecovery } from '../domain/recovery';
+import { contentChanged, parseRecovery, parseRecoveryOrEmpty } from './types';
 import { StorageConflict, type CollectionStore } from './types';
 
 export function createWebStore(name = 'ribbon-passport-v1'): CollectionStore {
@@ -53,6 +54,23 @@ export function createWebStore(name = 'ribbon-passport-v1'): CollectionStore {
         request.onerror = () => reject(request.error);
       });
     },
+    async recovery() {
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const request = db
+          .transaction('documents')
+          .objectStore('documents')
+          .get('recovery');
+        request.onsuccess = () => {
+          try {
+            resolve(parseRecovery(request.result));
+          } catch (e) {
+            reject(e);
+          }
+        };
+        request.onerror = () => reject(request.error);
+      });
+    },
     async load() {
       const db = await open();
       return new Promise((resolve, reject) => {
@@ -97,13 +115,19 @@ export function createWebStore(name = 'ribbon-passport-v1'): CollectionStore {
         canonical.onerror = () => reject(canonical.error);
       });
     },
-    async commit(next, expectedRevision, resolveConflict = false) {
+    async commit(
+      next,
+      expectedRevision,
+      resolveConflict = false,
+      recovery = [],
+    ) {
       const db = await open();
       await new Promise<void>((resolve, reject) => {
         const transaction = db.transaction('documents', 'readwrite');
         const documents = transaction.objectStore('documents');
         let failure: unknown;
         const sequence = documents.get('archive-sequence');
+        const saved = documents.get('recovery');
         const request = documents.get('collection');
         request.onsuccess = () => {
           try {
@@ -127,6 +151,13 @@ export function createWebStore(name = 'ribbon-passport-v1'): CollectionStore {
                   `archive:${archiveAt}:${current.id}:${current.revision}`,
                 );
               }
+              if (recovery.length)
+                documents.put(
+                  JSON.stringify(
+                    mergeRecovery(parseRecoveryOrEmpty(saved.result), recovery),
+                  ),
+                  'recovery',
+                );
               documents.put(JSON.stringify(next), 'collection');
               if (resolveConflict) documents.delete('pending-conflict');
             }

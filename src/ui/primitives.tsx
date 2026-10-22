@@ -7,6 +7,10 @@ import {
   View,
   type ViewProps,
   StyleSheet,
+  TextInput,
+  Platform,
+  Keyboard,
+  InputAccessoryView,
 } from 'react-native';
 import { colors, ui, useTheme } from './theme';
 import { artwork } from './artwork';
@@ -14,6 +18,7 @@ import { preparedArtwork } from './prepared-artwork';
 import { displayName, spriteKey, gameName } from '../domain/catalog';
 import type { Pokemon } from '../domain/model';
 import { gameColour } from '../domain/game-colours';
+import { clampInt, isoToday } from './form-logic';
 export function PixelText({ style, ...props }: TextProps) {
   const { colors, ui, dark } = useTheme();
   return (
@@ -216,6 +221,118 @@ export function GameLabel({
       <PixelText style={{ fontSize: size, color: gameColour(game, dark) }}>
         {gameName(game)}
       </PixelText>
+    </View>
+  );
+}
+export function NumberStepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange(v: number): void;
+}) {
+  const { ui } = useTheme();
+  const [text, setText] = React.useState(String(value));
+  React.useEffect(() => setText(String(value)), [value]);
+  const step = (d: number) => onChange(clampInt(value + d, min, max));
+  return (
+    <View style={[ui.between, { gap: 8, flexGrow: 1, flexBasis: 220 }]}>
+      <PixelText style={{ fontSize: 15, flex: 1 }}>{label}</PixelText>
+      <Button
+        label={`Decrease ${label}`}
+        disabled={value <= min}
+        onPress={() => step(-1)}
+      >
+        −
+      </Button>
+      <TextInput
+        accessibilityLabel={label}
+        value={text}
+        keyboardType="number-pad"
+        returnKeyType="done"
+        inputAccessoryViewID={DONE_BAR}
+        onChangeText={(t) => {
+          const digits = t.replace(/[^0-9]/g, '');
+          if (!digits) return setText('');
+          const next = clampInt(Number(digits), min, max);
+          setText(String(next));
+          onChange(next);
+        }}
+        onBlur={() => setText(String(value))}
+        style={[ui.input, { width: 64, textAlign: 'center' }]}
+      />
+      <Button
+        label={`Increase ${label}`}
+        disabled={value >= max}
+        onPress={() => step(1)}
+      >
+        +
+      </Button>
+    </View>
+  );
+}
+export const DONE_BAR = 'keyboardDone';
+// iOS-only accessory bar with a Done button that dismisses the keyboard.
+export function KeyboardDoneBar() {
+  const { colors } = useTheme();
+  if (Platform.OS !== 'ios') return null;
+  return (
+    <InputAccessoryView nativeID={DONE_BAR}>
+      <View
+        style={{
+          alignItems: 'flex-end',
+          padding: 6,
+          backgroundColor: colors.panel,
+          borderTopWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <Button onPress={() => Keyboard.dismiss()}>Done</Button>
+      </View>
+    </InputAccessoryView>
+  );
+}
+export function DateKnownField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange(v: string): void;
+}) {
+  const { ui } = useTheme();
+  const [known, setKnown] = React.useState(value !== '');
+  return (
+    <View style={{ gap: 8 }}>
+      <Button
+        primary={known}
+        onPress={() => {
+          setKnown(!known);
+          onChange(known ? '' : isoToday());
+        }}
+      >
+        {known ? 'Date known ✓' : 'Date known'}
+      </Button>
+      {known && (
+        <View style={{ gap: 7 }}>
+          <PixelText style={ui.label}>DATE (YYYY-MM-DD)</PixelText>
+          <TextInput
+            accessibilityLabel="Date (YYYY-MM-DD)"
+            value={value}
+            onChangeText={(t) => onChange(t.trim())}
+            inputAccessoryViewID={DONE_BAR}
+            style={ui.input}
+            keyboardType="numbers-and-punctuation"
+            maxLength={10}
+            autoCapitalize="none"
+          />
+        </View>
+      )}
     </View>
   );
 }

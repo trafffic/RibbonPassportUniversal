@@ -77,6 +77,7 @@ export const extraFields = [
   'honors',
   'journal',
   'moveNotes',
+  'savedBuilds',
   'showdownSet',
   'source',
   'communitySourceIDs',

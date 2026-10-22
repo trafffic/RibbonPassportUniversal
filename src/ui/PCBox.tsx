@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Image,
+  PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   View,
@@ -11,14 +13,29 @@ import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../state/CollectionProvider';
 import { displayName, displayedAwards, gameName } from '../domain/catalog';
-import { createBox } from '../domain/organisation';
+import type { Pokemon } from '../domain/model';
+import { createBox, ribbonMastersGuide } from '../domain/organisation';
 import { deletePokemon } from '../domain/passport';
-import { Art, Button, PixelText, Sprite } from './primitives';
+import { exportSource } from '../backup/codec';
+import { saveBackup } from '../backup/files';
+import { loadPreference, savePreference } from '../state/preference';
+import { Art, Button, Panel, PixelText, Sprite } from './primitives';
 import { BoxEditor, EditorSheet, PokemonEditor } from './Editors';
 import { BackupPanel } from './BackupPanel';
 import { ExportPokemon } from './ExportPokemon';
 import { pcMetrics as m, wallpapers } from './wallpapers';
 import { useTheme } from './theme';
+import { hitTest, pageIndex, pcFrames, type Rect } from './pc-drag';
+type Latest = {
+  boardWidth: number;
+  party: boolean;
+  box: { id: string; slots: (string | null)[] };
+  boxes: { id: string }[];
+  index: number;
+  moving: string;
+  byID: Map<string, Pokemon>;
+  state: ReturnType<typeof useCollection>;
+};
 export function PCBox({
   kind = 'ribbon',
   compact = false,
@@ -45,7 +62,35 @@ export function PCBox({
     [moving, setMoving] = useState(''),
     [party, setParty] = useState(false),
     [search, setSearch] = useState(''),
-    [finding, setFinding] = useState(false);
+    [finding, setFinding] = useState(false),
+    [exportError, setExportError] = useState('');
+  useEffect(() => {
+    let live = true;
+    loadPreference(`pc.${kind}.partyVisible`).then(
+      (value) => live && setParty(value === '1'),
+    );
+    return () => {
+      live = false;
+    };
+  }, [kind]);
+  const [drag, setDrag] = useState<{
+      pokemon: Pokemon;
+      x: number;
+      y: number;
+    } | null>(null),
+    [hoveredPage, setHoveredPage] = useState<-1 | 1 | null>(null);
+  const rowRef = useRef<React.ComponentRef<typeof View>>(null),
+    origin = useRef({ x: 0, y: 0 }),
+    start = useRef({ moveX: 0, moveY: 0 }),
+    partyRects = useRef<Rect[]>([]),
+    session = useRef<{ id: string; boxID: string } | null>(null),
+    paged = useRef(false),
+    partyOrigin = useRef({ x: 0, y: 0 }),
+    latest = useRef<Latest>(null!);
+  const toggleParty = () => {
+    setParty(!party);
+    savePreference(`pc.${kind}.partyVisible`, party ? '0' : '1');
+  };
   const records = c.records.filter((r) =>
       kind === 'showdown' ? !!r.pokemon.showdownSet : !r.pokemon.showdownSet,
     ),
@@ -56,6 +101,139 @@ export function PCBox({
     wallpapers.find((w) => w.id === box.wallpaper?.sunMoon) ?? wallpapers[0]!;
   const slotW = (boardWidth * m.gridWidth) / m.width / 6,
     slotH = (boardWidth * m.gridHeight) / m.height / 5;
+  latest.current = {
+    boardWidth,
+    party,
+    box,
+    boxes,
+    index,
+    moving,
+    byID,
+    state,
+  };
+  const pointer = (g: { moveX: number; moveY: number }) => ({
+    x:
+      g.moveX - (Platform.OS === 'web' ? window.scrollX : 0) - origin.current.x,
+    y:
+      g.moveY - (Platform.OS === 'web' ? window.scrollY : 0) - origin.current.y,
+  });
+  const frames = () => {
+    const L = latest.current,
+      art = {
+        x: L.party ? 48 : 0,
+        y: 0,
+        width: L.boardWidth,
+        height: (L.boardWidth * m.height) / m.width,
+      };
+    return pcFrames(
+      m,
+      art,
+      L.party
+        ? partyRects.current.map((r) => ({
+            ...r,
+            x: r.x + partyOrigin.current.x,
+            y: r.y + partyOrigin.current.y,
+          }))
+        : [],
+    );
+  };
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponderCapture: (e) => {
+        start.current = {
+          moveX: e.nativeEvent.pageX,
+          moveY: e.nativeEvent.pageY,
+        };
+        rowRef.current?.measureInWindow((x, y) => {
+          origin.current = { x, y };
+        });
+        return false;
+      },
+      onMoveShouldSetPanResponderCapture: (_, g) => {
+        const L = latest.current;
+        if (session.current) return true;
+        if (L.state.busy || L.moving || Math.abs(g.dx) + Math.abs(g.dy) < 4)
+          return false;
+        const target0 = pointer(start.current),
+          target = hitTest(target0, frames()),
+          id =
+            target?.kind === 'box'
+              ? L.box.slots[target.slot]
+              : target?.kind === 'party'
+                ? L.state.collection!.partyIDs.filter((i: string) =>
+                    L.byID.has(i),
+                  )[target.slot]
+                : null;
+        if (!id) return false;
+        session.current = { id, boxID: L.box.id };
+        return true;
+      },
+      onPanResponderGrant: () => {
+        const s = session.current;
+        if (s)
+          setDrag({
+            pokemon: latest.current.byID.get(s.id)!,
+            ...pointer(start.current),
+          });
+      },
+      onPanResponderMove: (_, g) => {
+        const p = pointer(g),
+          target = hitTest(p, frames());
+        setDrag((d) => d && { ...d, ...p });
+        if (target?.kind !== 'page') paged.current = false;
+        setHoveredPage(
+          target?.kind === 'page' && !paged.current ? target.direction : null,
+        );
+      },
+      onPanResponderRelease: (_, g) => finishDrag(g),
+      onPanResponderTerminate: (_, g) => finishDrag(g, true),
+      onPanResponderTerminationRequest: () => false,
+    }),
+  ).current;
+  const finishDrag = async (
+    g: { moveX: number; moveY: number },
+    cancelled = false,
+  ) => {
+    const s = session.current,
+      L = latest.current;
+    session.current = null;
+    paged.current = false;
+    setDrag(null);
+    setHoveredPage(null);
+    if (!s) return;
+    const target = cancelled ? null : hitTest(pointer(g), frames());
+    let moved = false;
+    if (target?.kind === 'box') {
+      if (L.box.slots[target.slot] === s.id) moved = true;
+      else
+        moved = await L.state.move(s.id, {
+          boxID: L.box.id,
+          slot: target.slot,
+        });
+    } else if (target?.kind === 'party') {
+      if (
+        L.state.collection!.partyIDs.filter((i) => L.byID.has(i))[
+          target.slot
+        ] === s.id
+      )
+        moved = true;
+      else moved = await L.state.move(s.id, { partySlot: target.slot });
+    }
+    if (!moved && L.box.id !== s.boxID) await L.state.selectBox(s.boxID);
+  };
+  useEffect(() => {
+    if (!hoveredPage || !drag) return;
+    const timer = setTimeout(() => {
+      const L = latest.current;
+      if (L.boxes.length < 2) return;
+      paged.current = true;
+      L.state.selectBox(
+        L.boxes[pageIndex(L.index, L.boxes.length, hoveredPage)]!.id,
+      );
+      setHoveredPage(null);
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [hoveredPage, !!drag]);
   const open = (tab = 'overview') => {
     if (p)
       router.push({
@@ -83,6 +261,23 @@ export function PCBox({
         router.replace({ pathname: '/passport/[id]', params: { id } });
     }
   };
+  const startAdd = async () => {
+    if (!boxes.length && !(await addBox())) return;
+    setSheet('add');
+  };
+  const hasDemo = c.records.some((r) => r.pokemon.source === 'demo'),
+    ribbonRecords = c.records.filter((r) => !r.pokemon.showdownSet);
+  const exportRibbonMasters = async () => {
+    setSheet('');
+    try {
+      await saveBackup(
+        exportSource(ribbonMastersGuide(c)),
+        'RibbonBackup-RibbonMasters.json',
+      );
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : String(e));
+    }
+  };
   return (
     <View style={{ gap: 16 }}>
       {!compact && (
@@ -106,6 +301,49 @@ export function PCBox({
           </Pressable>
         </View>
       )}
+      {!compact && !records.length && (
+        <Panel>
+          <PixelText accessibilityRole="header" style={{ fontSize: 22 }}>
+            {kind === 'ribbon'
+              ? 'Start your ribbon journey'
+              : 'Build your first team'}
+          </PixelText>
+          {kind === 'ribbon' ? (
+            <>
+              <Button onPress={() => setSheet('Backups')}>
+                Import ribbons.guide backup
+              </Button>
+              <Button
+                disabled={state.busy}
+                primary
+                onPress={() => state.tryDemo()}
+              >
+                Try demo
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onPress={() => router.push('/import-showdown')}>
+                Import Showdown team
+              </Button>
+              <Button onPress={() => router.push('/library')}>
+                Browse community teams
+              </Button>
+            </>
+          )}
+          <Button disabled={state.busy} onPress={startAdd}>
+            Add Pokémon
+          </Button>
+        </Panel>
+      )}
+      {!!exportError && (
+        <PixelText
+          accessibilityRole="alert"
+          style={{ color: colors.warningInk }}
+        >
+          {exportError}
+        </PixelText>
+      )}
       <View style={ui.between}>
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
           POKÉMON STORAGE
@@ -124,9 +362,18 @@ export function PCBox({
           gap: 10,
         }}
       >
-        <View style={{ flexDirection: 'row', gap: 5, alignItems: 'stretch' }}>
+        <View
+          ref={rowRef}
+          {...responder.panHandlers}
+          style={{ flexDirection: 'row', gap: 5, alignItems: 'stretch' }}
+        >
           {party && (
-            <View style={{ width: 43, gap: 3, padding: 3 }}>
+            <View
+              onLayout={(e) => {
+                partyOrigin.current = e.nativeEvent.layout;
+              }}
+              style={{ width: 43, gap: 3, padding: 3 }}
+            >
               <PixelText style={{ fontSize: 10, color: colors.muted }}>
                 PARTY
               </PixelText>
@@ -150,8 +397,12 @@ export function PCBox({
                           setMoving('');
                       } else if (id) await state.select(id);
                     }}
+                    onLayout={(e) => {
+                      partyRects.current[i] = e.nativeEvent.layout;
+                    }}
                     style={{
                       flex: 1,
+                      opacity: drag && drag.pokemon.id === id ? 0.08 : 1,
                       backgroundColor: colors.panel,
                       borderRadius: 3,
                       alignItems: 'center',
@@ -227,7 +478,7 @@ export function PCBox({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Party"
-                onPress={() => setParty(!party)}
+                onPress={toggleParty}
                 style={{ minHeight: 32, justifyContent: 'center' }}
               >
                 <PixelText
@@ -298,6 +549,7 @@ export function PCBox({
                         !!pokemon && pokemon.id === p?.id
                           ? '#EBF3D840'
                           : 'transparent',
+                      opacity: drag && drag.pokemon.id === id ? 0.08 : 1,
                     }}
                   >
                     {pokemon && (
@@ -322,6 +574,19 @@ export function PCBox({
               })}
             </View>
           </View>
+          {drag && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: drag.x - 20,
+                top: drag.y - 22,
+                zIndex: 10,
+              }}
+            >
+              <Sprite pokemon={drag.pokemon} size={40} />
+            </View>
+          )}
         </View>
         {!compact && p && (
           <>
@@ -466,6 +731,7 @@ export function PCBox({
         'Pokémon actions',
         'All boxes',
         'Delete Pokémon',
+        'Refresh demo',
       ].includes(sheet) && (
         <EditorSheet title={sheet} onClose={() => setSheet('')}>
           {sheet === 'Options' ? (
@@ -498,17 +764,31 @@ export function PCBox({
                   </Button>
                 </>
               )}
-              <Button
-                onPress={async () => {
-                  if (!boxes.length && !(await addBox())) return;
-                  setSheet('add');
-                }}
-              >
-                Add Pokémon
-              </Button>
+              <Button onPress={startAdd}>Add Pokémon</Button>
               <Button onPress={() => setSheet('Backups')}>
                 Import / export
               </Button>
+              {kind === 'ribbon' && (
+                <>
+                  <Button
+                    disabled={!ribbonRecords.length}
+                    onPress={exportRibbonMasters}
+                  >
+                    Export Ribbon Masters
+                  </Button>
+                  <Button
+                    onPress={() => {
+                      if (hasDemo) setSheet('Refresh demo');
+                      else {
+                        setSheet('');
+                        state.tryDemo();
+                      }
+                    }}
+                  >
+                    {hasDemo ? 'Refresh demo' : 'Try demo'}
+                  </Button>
+                </>
+              )}
               <Button
                 onPress={async () => {
                   await addBox();
@@ -557,6 +837,22 @@ export function PCBox({
                 }}
               >{`${b.name} · ${b.slots.filter(Boolean).length}/30`}</Button>
             ))
+          ) : sheet === 'Refresh demo' ? (
+            <>
+              <PixelText>
+                Replace the demo Pokémon with a fresh copy? Their notes and
+                journal are kept. You can undo this change.
+              </PixelText>
+              <Button
+                disabled={state.busy}
+                primary
+                onPress={async () => {
+                  if (await state.tryDemo()) setSheet('');
+                }}
+              >
+                Refresh demo Pokémon
+              </Button>
+            </>
           ) : sheet === 'Delete Pokémon' ? (
             <>
               <PixelText>
@@ -618,6 +914,7 @@ export function PCBox({
                     ))
                   ) {
                     setParty(true);
+                    savePreference(`pc.${kind}.partyVisible`, '1');
                     setSheet('');
                   }
                 }}

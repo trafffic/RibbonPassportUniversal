@@ -1,5 +1,5 @@
 import type { Collection, Operation, PassportRecord, Pokemon } from './model';
-import { recordRibbon, removeRibbon } from './rules';
+import { assignAwardGame, recordRibbon, removeRibbon } from './rules';
 
 export interface ChangeContext { id: string; at: string }
 export interface UndoToken { before: PassportRecord; afterRevision: string; award: string }
@@ -20,4 +20,14 @@ export function undoChange(collection: Collection, token: UndoToken, context: Ch
   if (current?.version.revision !== token.afterRevision) throw new Error('This record changed after the action. Undo cannot overwrite a newer version.');
   const restored = { ...token.before, version: { revision: context.id, parentRevision: current.version.revision } };
   return { ...collection, revision: context.id, records: collection.records.map(r => r.id === restored.id ? restored : r), operations: [...collection.operations, { id: context.id, recordID: restored.id, parentRevision: current.version.revision, revision: context.id, at: context.at, kind: 'undo', award: token.award }] };
+}
+export function assignGame(collection: Collection, recordID: string, award: string, game: string, context: ChangeContext): Collection {
+  const before = collection.records.find(r => r.id === recordID);
+  if (!before) throw new Error('Pokémon not found.');
+  const pokemon = assignAwardGame(before.pokemon, award, game);
+  const changes = { ...before.changes };
+  for (const key of ['earnedGames', 'earnedGenerations', 'visits'] as const) changes[key] = pokemon[key];
+  const after: PassportRecord = { ...before, pokemon, changes, version: { revision: context.id, parentRevision: before.version.revision } };
+  const operation: Operation = { id: context.id, recordID, parentRevision: before.version.revision, revision: context.id, at: context.at, kind: 'assign-game', award, game };
+  return { ...collection, revision: context.id, records: collection.records.map(r => r.id === recordID ? after : r), operations: [...collection.operations, operation] };
 }

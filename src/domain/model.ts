@@ -25,6 +25,7 @@ export interface Pokemon {
   honors?: Honor[];
   journal?: Memory[];
   moveNotes?: MoveNote[];
+  savedBuilds?: SavedBuild[];
 }
 export interface ShowdownSet {
   item: string;
@@ -62,11 +63,37 @@ export interface MoveNote {
   note: string;
   homeChecked: boolean;
 }
+export interface SavedBuild {
+  id: string;
+  name: string;
+  build: ShowdownSet;
+  note: string;
+  sourceIDs: string[];
+}
 export interface Team {
   id: string;
   name: string;
   memberIDs: string[];
   communitySourceIDs?: string[];
+  savedBuilds?: TeamBuild[];
+}
+export interface TeamBuildMember {
+  id: string;
+  species: string;
+  nickname: string;
+  build: ShowdownSet;
+  level?: number;
+  game?: string;
+  gender?: string;
+  shiny?: boolean;
+  gmax?: boolean;
+}
+export interface TeamBuild {
+  id: string;
+  name: string;
+  members: TeamBuildMember[];
+  note: string;
+  sourceIDs: string[];
 }
 export interface Visit {
   id: string;
@@ -102,6 +129,7 @@ export interface Operation {
   kind:
     | 'record-ribbon'
     | 'remove-ribbon'
+    | 'assign-game'
     | 'undo'
     | 'add-pokemon'
     | 'edit-pokemon'

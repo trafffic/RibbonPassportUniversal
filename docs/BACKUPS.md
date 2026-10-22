@@ -27,7 +27,7 @@ The input document may contain notebooks, photos/base64 data, saved competitive 
 
 Guide exports write standard box names and per-record box assignments. A versioned `ribbonPassportLayout` extension carries exact slot gaps, party, wallpaper and stable IDs for restoration in Universal; ribbons.guide ignores it and may compact the PC when it re-exports. Unknown fields within an existing supported extension are retained. An unknown extension version or unsupported guide box-list entries cause original-format export to fail with an explanation; a full universal export remains available. Neither source format carries universal operation/revision history. Other apps may ignore earning-history additions, so keep a universal backup as the complete portable copy.
 
-The universal backup does not include separate locally archived collections/conflict branches. Export conflict candidates explicitly before resolving them when portable copies are desired. Local storage archives both candidates and replacement-import snapshots; Settings → Recovery history can review/export/restore archived collections. It does not yet reproduce Swift per-Pokémon recovery.
+The universal backup does not include separate locally archived collections/conflict branches. Export conflict candidates explicitly before resolving them when portable copies are desired. Local storage archives both candidates and replacement-import snapshots; Settings → Recovery history can review/export/restore archived collections. Per-Pokémon and team versions are stored separately and committed atomically with each saved change.
 
 ## Known limits
 

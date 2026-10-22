@@ -34,6 +34,14 @@ export function compatibleGames(p: Pokemon, reachableOnly = true): string[] {
     return true;
   }));
 }
+export function journeyGameChoices(p: Pokemon): string[] {
+  const originGroups = p.origingame ? reachableGroups(p.origingame) : null, currentGroup = group(p.currentgame);
+  return compatibleGames(p, false).filter(game => {
+    const g = group(game);
+    if (!g || (originGroups && !originGroups.has(g))) return false;
+    return !currentGroup || reachableGroups(game).has(currentGroup);
+  });
+}
 export function unavailableReason(award: string, game: string, p: Pokemon, historical = false, checkCompatibility = true): string | null {
   const rule = data.awards[award], info = data.species[p.species];
   if (!rule || !info) return 'Choose a Pokémon';
@@ -114,4 +122,16 @@ export function removeRibbon(p: Pokemon, award: string): Pokemon {
   delete earnedGames[award]; delete earnedGenerations[award];
   return { ...p, ribbons: p.ribbons.filter(id => id !== award), earnedGames, earnedGenerations,
     ...(p.title === award ? { title: 'None', titleText: '' } : {}) };
+}
+export function assignableGames(p: Pokemon, award: string): string[] {
+  const rule = data.awards[award], gen = p.earnedGenerations?.[award];
+  if (!p.ribbons.includes(award) || !rule || rule.memory || p.earnedGames?.[award]) return [];
+  const visited = new Set(recordedVisits(p).map(v => v.game));
+  return compatibleGames(p, false).filter(game => visited.has(game) &&
+    (!gen || generation(game) === gen) && unavailableReason(award, game, p, true) === null);
+}
+export function assignAwardGame(p: Pokemon, award: string, game: string): Pokemon {
+  if (!assignableGames(p, award).includes(game)) throw new Error('This ribbon cannot be assigned to that game.');
+  return { ...p, earnedGames: { ...p.earnedGames, [award]: game },
+    earnedGenerations: { ...p.earnedGenerations, [award]: generation(game) }, visits: recordedVisits(p) };
 }
