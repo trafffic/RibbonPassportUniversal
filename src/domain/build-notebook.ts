@@ -12,7 +12,7 @@ const fields = [
 ] as const;
 const cleanMoves = (build: ShowdownSet) =>
   build.moves.map((m) => m.trim()).filter(Boolean);
-const copy = (build: ShowdownSet): ShowdownSet => ({
+export const copy = (build: ShowdownSet): ShowdownSet => ({
   ...build,
   moves: [...build.moves],
   ...(build.extraLines ? { extraLines: [...build.extraLines] } : {}),

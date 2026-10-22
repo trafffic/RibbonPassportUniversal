@@ -75,6 +75,25 @@ export interface Team {
   name: string;
   memberIDs: string[];
   communitySourceIDs?: string[];
+  savedBuilds?: TeamBuild[];
+}
+export interface TeamBuildMember {
+  id: string;
+  species: string;
+  nickname: string;
+  build: ShowdownSet;
+  level?: number;
+  game?: string;
+  gender?: string;
+  shiny?: boolean;
+  gmax?: boolean;
+}
+export interface TeamBuild {
+  id: string;
+  name: string;
+  members: TeamBuildMember[];
+  note: string;
+  sourceIDs: string[];
 }
 export interface Visit {
   id: string;

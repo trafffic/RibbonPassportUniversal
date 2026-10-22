@@ -4,6 +4,7 @@ import type {
   Collection,
   PassportRecord,
   Pokemon,
+  Team,
   ShowdownSet,
   Visit,
 } from '../domain/model';
@@ -52,6 +53,100 @@ function showdownProjection(v: Obj): ShowdownSet {
     moves: stringArray(v.moves) ? v.moves : [],
     ...(stringArray(v.extraLines) ? { extraLines: v.extraLines } : {}),
   };
+}
+function teamProjection(t: Obj): Team {
+  return {
+    id: textValue(t.id),
+    name: textValue(t.name),
+    memberIDs: stringArray(t.memberIDs) ? t.memberIDs : [],
+    ...(stringArray(t.communitySourceIDs)
+      ? { communitySourceIDs: t.communitySourceIDs }
+      : {}),
+    ...(Array.isArray(t.savedBuilds)
+      ? {
+          savedBuilds: t.savedBuilds.flatMap((v) =>
+            object(v) && typeof v.id === 'string' && Array.isArray(v.members)
+              ? [
+                  {
+                    id: v.id,
+                    name: textValue(v.name),
+                    note: textValue(v.note),
+                    sourceIDs: stringArray(v.sourceIDs) ? v.sourceIDs : [],
+                    members: v.members.flatMap((m) =>
+                      object(m) && typeof m.id === 'string' && object(m.build)
+                        ? [
+                            {
+                              id: m.id,
+                              species: textValue(m.species),
+                              nickname: textValue(m.nickname),
+                              build: showdownProjection(m.build),
+                              ...(numeric(m.level) !== undefined
+                                ? { level: numeric(m.level) }
+                                : {}),
+                              ...(typeof m.game === 'string'
+                                ? { game: m.game }
+                                : {}),
+                              ...(typeof m.gender === 'string'
+                                ? { gender: m.gender }
+                                : {}),
+                              ...(typeof m.shiny === 'boolean'
+                                ? { shiny: m.shiny }
+                                : {}),
+                              ...(typeof m.gmax === 'boolean'
+                                ? { gmax: m.gmax }
+                                : {}),
+                            },
+                          ]
+                        : [],
+                    ),
+                  },
+                ]
+              : [],
+          ),
+        }
+      : {}),
+  };
+}
+const mergeRows = <T extends { id: string }>(
+  old: unknown[],
+  rows: T[],
+  valid: (o: unknown) => o is Obj,
+  merge: (old: Obj | undefined, row: T) => unknown,
+) => [
+  ...rows.map((row) =>
+    merge(
+      old.find((o): o is Obj => valid(o) && o.id === row.id),
+      row,
+    ),
+  ),
+  ...old.filter((o) => !valid(o)),
+];
+// Keeps fields this app does not model, and malformed entries it dropped on import.
+function mergeTeam(old: Obj | undefined, team: Team): Obj {
+  const next: Obj = { ...old, ...team };
+  if (team.savedBuilds && Array.isArray(old?.savedBuilds))
+    next.savedBuilds = mergeRows(
+      old.savedBuilds as unknown[],
+      team.savedBuilds,
+      (o): o is Obj =>
+        object(o) && typeof o.id === 'string' && Array.isArray(o.members),
+      (oldV, v) => ({
+        ...oldV,
+        ...v,
+        members: mergeRows(
+          Array.isArray(oldV?.members) ? (oldV.members as unknown[]) : [],
+          v.members,
+          (o): o is Obj =>
+            object(o) && typeof o.id === 'string' && object(o.build),
+          (oldM, m) => ({
+            ...oldM,
+            ...m,
+            build: { ...(object(oldM?.build) ? oldM.build : {}), ...m.build },
+          }),
+        ),
+      }),
+    );
+  return next;
 }
 function normalize(entry: Obj, id: string): Pokemon {
   const extras = (key: string, fields: string[]) =>
@@ -436,14 +531,7 @@ export function importBackup(
     selectedBoxID: boxes[0]!.id,
     operations: [],
     teams: Array.isArray(container.teams)
-      ? container.teams.filter(teamRow).map((t) => ({
-          id: textValue(t.id),
-          name: textValue(t.name),
-          memberIDs: stringArray(t.memberIDs) ? t.memberIDs : [],
-          ...(stringArray(t.communitySourceIDs)
-            ? { communitySourceIDs: t.communitySourceIDs }
-            : {}),
-        }))
+      ? container.teams.filter(teamRow).map(teamProjection)
       : [],
     ...(object(container.sourceNotes)
       ? {
@@ -564,11 +652,7 @@ export function validateCollection(value: Collection): Collection {
       ? root.collection
       : root;
   if (value.teams === undefined && Array.isArray(metadata.teams))
-    value.teams = metadata.teams.filter(teamRow).map((t) => ({
-      id: textValue(t.id),
-      name: textValue(t.name),
-      memberIDs: stringArray(t.memberIDs) ? t.memberIDs : [],
-    }));
+    value.teams = metadata.teams.filter(teamRow).map(teamProjection);
   if (value.sourceNotes === undefined && object(metadata.sourceNotes))
     value.sourceNotes = Object.fromEntries(
       Object.entries(metadata.sourceNotes).filter(
@@ -725,7 +809,7 @@ export function exportSource(collection: Collection): string {
           const old = originalTeams.find(
             (t) => object(t) && t.id === team.id,
           ) as Obj | undefined;
-          const next: Obj = { ...old, ...team };
+          const next = mergeTeam(old, team);
           if (old && !stringArray(old.memberIDs) && !team.memberIDs.length)
             next.memberIDs = old.memberIDs;
           return next;
