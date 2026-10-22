@@ -85,9 +85,9 @@ test('create empty collection, add and edit Pokémon, then recover the earlier v
   await expect(button(page, 'Select Atlas Prime')).toBeVisible();
   await mainTab(page, 'Settings').click();
   await button(page, 'Recovery history').click();
-  await expect(button(page, 'Review saved version 1')).toBeVisible();
-  await button(page, 'Review saved version 1').click();
-  await button(page, 'Restore saved version').click();
+  await expect(button(page, 'Review collection archive 1')).toBeVisible();
+  await button(page, 'Review collection archive 1').click();
+  await button(page, 'Restore collection archive').click();
   await mainTab(page, 'Ribbons').click();
   await expect(button(page, 'Select Atlas')).toBeVisible();
 });

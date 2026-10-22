@@ -19,6 +19,12 @@ import {
 } from '../domain/organisation';
 import { changeRibbon, undoChange, type UndoToken } from '../domain/collection';
 import { createSample } from '../domain/sample';
+import {
+  captureRecovery,
+  restoreEntry,
+  type RecoveryAction,
+  type RecoveryEntry,
+} from '../domain/recovery';
 import { collectionStore } from '../storage';
 import { StorageConflict } from '../storage/types';
 import type { ChangeContext } from '../domain/collection';
@@ -39,6 +45,7 @@ interface State {
   change(id: string, award: string, game?: string): Promise<boolean>;
   undo(): Promise<boolean>;
   replace(value: Collection): Promise<boolean>;
+  restoreVersion(entry: RecoveryEntry): Promise<boolean>;
   reload(): Promise<void>;
   add(pokemon: Pokemon, boxID: string): Promise<boolean>;
   edit(
@@ -111,6 +118,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     build: (before: Collection) => Collection,
     message: string,
     after?: (before: Collection) => void,
+    action: RecoveryAction = 'edited',
   ) => {
     if (locked.current || !current.current || conflict) return false;
     locked.current = true;
@@ -120,7 +128,14 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     const before = current.current;
     try {
       const next = build(before);
-      await collectionStore.commit(next, before.revision);
+      await collectionStore.commit(
+        next,
+        before.revision,
+        false,
+        captureRecovery(before, next, action, new Date().toISOString(), () =>
+          Crypto.randomUUID(),
+        ),
+      );
       accept(next);
       setNotice(message);
       after?.(before);
@@ -212,6 +227,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
             : restoreCollection(c, undo, context()),
         'Change undone. Saved on this device.',
         () => setUndo(null),
+        'restored',
       );
     },
     add: (p, boxID) =>
@@ -243,6 +259,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
           ),
         'Empty collection created. Previous collection archived locally.',
         (before) => setUndo(before),
+        'imported',
       ),
     updateBox: (id, details) =>
       commit(
@@ -261,6 +278,16 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
         () => ({ ...next, revision: Crypto.randomUUID() }),
         'Backup imported. Original fields preserved.',
         (before) => setUndo(before),
+        'imported',
+      ),
+    restoreVersion: (entry) =>
+      commit(
+        (c) => restoreEntry(c, entry, context(), () => Crypto.randomUUID()),
+        entry.kind === 'pokemon'
+          ? 'Saved version restored. The replaced details stay in Recovery history.'
+          : 'Team restored. The replaced details stay in Recovery history.',
+        (before) => setUndo(before),
+        'restored',
       ),
     resolveConflict: async (side) => {
       if (!conflict || locked.current) return;
