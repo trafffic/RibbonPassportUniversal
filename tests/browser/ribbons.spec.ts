@@ -110,6 +110,6 @@ test('species without bundled art load their sprite, falling back through the so
   await importText(page, unknownGame.replace('metagross', 'bulbasaur'));
   await page.goto('/passport/p1');
   await expect(page.getByRole('img', { name: 'Bulbasaur' }).first()).toBeVisible();
-  expect(tried[0]).toContain('pokesprite');
-  expect(tried.at(-1)).toContain('pokemonshowdown.com');
+  await expect.poll(() => tried[0]).toContain('pokesprite');
+  await expect.poll(() => tried.at(-1)).toContain('pokemonshowdown.com');
 });
