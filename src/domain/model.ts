@@ -19,11 +19,65 @@ export interface Pokemon {
   metLevel?: number;
   sizeScale?: number;
   ball?: string;
+  source?: string;
+  showdownSet?: ShowdownSet;
+  communitySourceIDs?: string[];
+  honors?: Honor[];
+  journal?: Memory[];
+  moveNotes?: MoveNote[];
 }
-export interface Visit { id: string; game: string }
+export interface ShowdownSet {
+  item: string;
+  ability: string;
+  nature: string;
+  evs: string;
+  ivs: string;
+  teraType: string;
+  moves: string[];
+  extraLines?: string[];
+}
+export interface Memory {
+  id: string;
+  title: string;
+  game: string;
+  date: string;
+  text: string;
+  photo?: string;
+}
+export interface Honor {
+  id: string;
+  catalogID: string;
+  title: string;
+  game: string;
+  earned: boolean;
+  date: string;
+  note: string;
+  photo?: string;
+  trainerMilestone: boolean;
+}
+export interface MoveNote {
+  id: string;
+  move: string;
+  game: string;
+  note: string;
+  homeChecked: boolean;
+}
+export interface Team {
+  id: string;
+  name: string;
+  memberIDs: string[];
+  communitySourceIDs?: string[];
+}
+export interface Visit {
+  id: string;
+  game: string;
+}
 export interface Box {
-  id: string; name: string; slots: (string | null)[];
+  id: string;
+  name: string;
+  slots: (string | null)[];
   wallpaper?: { sunMoon?: string; tint?: string; strength?: number };
+  kind?: 'ribbon' | 'showdown';
 }
 export interface RecordVersion {
   revision: string;
@@ -45,7 +99,19 @@ export interface Operation {
   parentRevision: string;
   revision: string;
   at: string;
-  kind: 'record-ribbon' | 'remove-ribbon' | 'undo' | 'add-pokemon' | 'edit-pokemon' | 'create-box' | 'edit-box' | 'move-pokemon';
+  kind:
+    | 'record-ribbon'
+    | 'remove-ribbon'
+    | 'undo'
+    | 'add-pokemon'
+    | 'edit-pokemon'
+    | 'create-box'
+    | 'edit-box'
+    | 'move-pokemon'
+    | 'edit-passport'
+    | 'edit-team'
+    | 'delete-pokemon'
+    | 'preferences';
   award?: string;
   game?: string;
 }
@@ -61,4 +127,13 @@ export interface Collection {
   selectedBoxID: string;
   operations: Operation[];
   layoutChanged?: boolean;
+  teams?: Team[];
+  sourceNotes?: Record<string, string>;
+  appearance?: 'dark' | 'light' | 'automatic';
+  metadataChanged?: boolean;
+  metadataChanges?: (
+    'teams' | 'sourceNotes' | 'appearance' | 'selectedTeamID'
+  )[];
+  selectedTeamID?: string;
+  deletedSourceIndexes?: number[];
 }

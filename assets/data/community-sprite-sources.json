@@ -1,0 +1,110 @@
+{
+  "sprite-regular_ursaluna": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/ursaluna.png",
+    "sha256": "80d2e98645bbe4067a4b7e962ee0fcd2ac13b633f710d65823a1d92785b935b5"
+  },
+  "sprite-regular_chi-yu": {
+    "url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1004.png",
+    "sha256": "e9112cdc066291ac136a990df6082d91ab4ce7405a0b388ef706896d7b106e45"
+  },
+  "sprite-regular_brute-bonnet": {
+    "url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/986.png",
+    "sha256": "bbcbf79a65c9206b815b834187098dfb8d89bf265177b25b1773810453bc4ea9"
+  },
+  "sprite-regular_flutter-mane": {
+    "url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/987.png",
+    "sha256": "64df0dde63e838b1a307d9159fc6912b99134ede5f6a678fcc3e5f04fe95b34b"
+  },
+  "sprite-regular_lunala": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/lunala.png",
+    "sha256": "ea208f4e63b713dff76469cc02d68758c2abaae988772ae35ca990d344b4e067"
+  },
+  "sprite-regular_raikou": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/raikou.png",
+    "sha256": "9a39c46eb7bae75084809cd1c6e34e6b6c544c3153b1f40081e6f21c41082f00"
+  },
+  "sprite-regular_kingdra": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/kingdra.png",
+    "sha256": "c57cd57420f53c921ba7ed1f88ef0963e69ffca205f8aa89bfb5524e4cca85ed"
+  },
+  "sprite-regular_pelipper": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/pelipper.png",
+    "sha256": "692a17da8e041ea6d4277106405223ce47c7d7aeb8f7f635ab3c012fa84ad2c9"
+  },
+  "sprite-regular_koraidon": {
+    "url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1007.png",
+    "sha256": "e5cae616ad9373092aaab947d917705cc0d83eb866006cbc4739626c4fa50c5d"
+  },
+  "sprite-regular_scizor": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/scizor.png",
+    "sha256": "2eac12e1774f0dc00f4c15c30171e0300cadc53ef7b400b39ff0d5e23436874d"
+  },
+  "sprite-regular_rotom-wash": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/rotom-wash.png",
+    "sha256": "fd24efb55a4ce940344ad25b698648d5d2885e43a58969ce51211562a493e9b8"
+  },
+  "sprite-regular_charizard-gmax": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/charizard-gmax.png",
+    "sha256": "26a4f71c1abbcddaae8ff7b6ead2832d0fa629c9eef85a710b04abfe6412b266"
+  },
+  "sprite-regular_eternatus": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/eternatus.png",
+    "sha256": "a345d9d3bb1a8fcf787656b17d02c007933f2194547566c7a12e24a8e3cf7d4f"
+  },
+  "sprite-regular_zamazenta-crowned": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/zamazenta-crowned.png",
+    "sha256": "69e89783c5b706b88c25262c99ea5d828a94b47adb1b3743ecb5627a8528f3c4"
+  },
+  "sprite-regular_muk-alola": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/muk-alola.png",
+    "sha256": "8463afeba0a81b394ecfd707a18d04370b426be0d4708bd84d2dc5a287412a91"
+  },
+  "sprite-regular_scizor-mega": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/scizor-mega.png",
+    "sha256": "bbfeeec6cd5729524d79a4021057514e7796696e74c75bbbc59f2163df73307a"
+  },
+  "sprite-regular_drapion": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/drapion.png",
+    "sha256": "99e29dc50210384479a06aeae10b10f7045a9a90d0aa756777f58b95910a5882"
+  },
+  "sprite-regular_cloyster": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/cloyster.png",
+    "sha256": "057cd367f8a0aac2c3f9bf66faa956bf737a52bea9f58106cb7c73ef292bbf12"
+  },
+  "sprite-regular_tapu-fini": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/tapu-fini.png",
+    "sha256": "9835a85ff048079612bc1a6971d3a3853aa2b973eb754a107678dd1abf3a6212"
+  },
+  "sprite-regular_durant": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/durant.png",
+    "sha256": "5dfba848e00f99b0c7c6d6ab95520bd3c60f010b3f0e562c95d3214634329206"
+  },
+  "sprite-regular_tauros": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/tauros.png",
+    "sha256": "7e1604fa1477f83159533383fc4affc3d1c9ccad58bd17cd0cea48c656ada28b"
+  },
+  "sprite-regular_staraptor": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/staraptor.png",
+    "sha256": "60818aeb79eef7aacfe90a8e2d2f0d821ddf06b63c06f6940db187b24789fae0"
+  },
+  "sprite-regular_garchomp": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/garchomp.png",
+    "sha256": "7c23323955685d2680c4717de5a23e7e60accc4c2fbf3d2604d3ed8d47f8e0ce"
+  },
+  "sprite-regular_registeel": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/registeel.png",
+    "sha256": "fac28adb76d6ff45fad79aaf0b402672ebfceb98bf75bf489e847c3a145d59f9"
+  },
+  "sprite-regular_latias": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/latias.png",
+    "sha256": "cc6ae2e4a36b7d9696a3d4c1ad94b54ca53802468e0f403c0b4a8765cdd78385"
+  },
+  "sprite-regular_suicune": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/suicune.png",
+    "sha256": "553766642bcb4efa4db8d4b6cab7edb54c3742e181c4887df07532ebf44093e4"
+  },
+  "sprite-regular_latios": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/latios.png",
+    "sha256": "57897fed26877b5d0b8fff2afc314f652e823885d6d5a71ab369179dee05d325"
+  }
+}

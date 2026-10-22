@@ -1,5 +1,7 @@
 # Collection organisation and iPhone visual parity
 
+The original second-slice notes below are historical. The production Classic PC / Passport Studio implementation, local competitive tools, field guides and notebooks are now described in [UI-PARITY.md](UI-PARITY.md). Current checks are in [VALIDATION.md](VALIDATION.md).
+
 The reference remains commit `3d16bd7042ce846a60474237b6a84526fc677d11`, inspected read-only. `PCScreens.swift`, `CollectionEditors.swift`, `RetroStyle.swift`, `PassportViews.swift`, `SharedStore.swift`, `CustomizationPacks.swift` and `UserCustomization.swift` define the port’s interactions and image geometry. No applicable AGENTS.md was found.
 
 ## Visual changes
@@ -13,7 +15,7 @@ The reference remains commit `3d16bd7042ce846a60474237b6a84526fc677d11`, inspect
 
 ## Artwork provenance and limits
 
-`assets/art` and `assets/wallpapers` retain the reference files unchanged. `assets/prepared` contains only render copies of that artwork. The twelve original bundled Pokémon sprites retain their exact style and colours; the manifest records their source paths and checksums. Species/forms/shinies not present in the original bundle show an explicit unavailable-artwork marker. No replacement portrait, different species or regular-colour sprite is substituted for a missing shiny. No artwork request happens at runtime.
+`assets/art` and `assets/wallpapers` retain the reference files unchanged. `assets/prepared` contains rendering copies of that artwork plus 27 attributed team-member icons from the same PokeSprite / Gen IX PokeAPI sources. The twelve original bundled Pokémon sprites retain their exact style and colours; the manifest records their source paths and checksums. Species/forms/shinies not present in the original bundle show an explicit unavailable-artwork marker. No replacement portrait, different species or regular-colour sprite is substituted for a missing shiny. No artwork request happens at runtime.
 
 Sources and artwork rights remain those recorded in [the reference credits](REFERENCE-CREDITS.md). The newly downloaded replacement portrait bundle is no longer included. Nothing was published or uploaded.
 
@@ -23,4 +25,4 @@ The existing Expo/RN dependency versions remain. `pngjs` 7 is a build/test-only 
 
 Create an empty collection, add/edit species/form, nickname, gender, shiny, Gmax/shadow flags, origin/current game, level, met level and size. Create/rename boxes, select a wallpaper, search/filter across boxes, and move/swap to occupied/empty box or party slots. Saves commit before showing success. Undo restores data and writes a fresh operation; edits retain ownership, earning history and previous known endpoints. Setting a current game edits recorded details; it is not a guided transfer check-in.
 
-Backup compatibility details are in [BACKUPS.md](BACKUPS.md). Accounts, cloud sync, sharing, guides, community services and widgets remain integration work, not implemented placeholders. Native iPhone/iPad validation still requires a cloud Mac/signing/build environment.
+Backup compatibility details are in [BACKUPS.md](BACKUPS.md). Accounts, cloud sync, sharing, public contribution services and widgets remain integration work. Original bundled guides and team-library content now work offline with local personal copies and notes; they are separate from those public services. Native iPhone/iPad validation still requires a cloud Mac/signing/build environment.

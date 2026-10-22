@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-22T07:18:50.105Z",
+  "platform": "Android 36 x86_64 emulator",
+  "phone": {
+    "width": 1080,
+    "height": 2400,
+    "density": 420
+  },
+  "tablet": {
+    "width": 1600,
+    "height": 2560,
+    "density": 240
+  },
+  "passed": [
+    "native document-picker sample import",
+    "Classic PC selection and passport",
+    "ribbon earning game, undo and repeat",
+    "Journey",
+    "bundled field guide",
+    "attributed independent team copy and battle build",
+    "offline force-stop/reopen and SQLite restore",
+    "native JSON export verifies ownership, earning game and stable team identities",
+    "tablet PC preview and Passport Studio"
+  ],
+  "ios": "Blocked: user has no Mac or cloud Mac access."
+}

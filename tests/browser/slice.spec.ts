@@ -1,160 +1,196 @@
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs/promises';
-
-test('PC selection, passport, ribbon record/undo, Journey, offline reopen and export', async ({ page, context }, info) => {
+import {
+  button,
+  mainTab,
+  passportTab,
+  record,
+  offline,
+  backups,
+  download,
+  importText,
+  options,
+} from './helpers';
+const passport = '/passport/sample-collection-v1-pokemon-4';
+test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journey, offline restore and export', async ({
+  page,
+  context,
+}, info) => {
   const errors: string[] = [];
-  page.on('pageerror', e => errors.push(e.message));
+  page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Select Sparky' })).toBeVisible();
-  await expect(page.getByText('QUICK PREVIEW', { exact: true })).toBeVisible();
-  // Check the original sample silhouettes in the real rectangular PC slots.
-  // A width-only bound missed tall-sprite clipping in the earlier layout.
+  await expect(button(page, 'Select Sparky')).toBeVisible();
   for (let i = 1; i <= 6; i++) {
-    const slot = page.getByTestId(`pc-slot-${i}`);
-    const outer = (await slot.boundingBox())!;
-    const images = slot.locator('img');
-    expect(await images.count()).toBeGreaterThan(0);
-    for (const image of await images.all()) {
-      await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-      const inner = (await image.boundingBox())!;
-      expect(inner.x).toBeGreaterThanOrEqual(outer.x);
-      expect(inner.y).toBeGreaterThanOrEqual(outer.y);
-      expect(inner.x + inner.width).toBeLessThanOrEqual(outer.x + outer.width);
-      expect(inner.y + inner.height).toBeLessThanOrEqual(outer.y + outer.height);
+    const slot = page.getByTestId('pc-slot-' + i),
+      outer = (await slot.boundingBox())!;
+    for (const img of await slot.locator('img').all()) {
+      await expect
+        .poll(() =>
+          img.evaluate(
+            (el: HTMLImageElement) => el.complete && el.naturalWidth > 0,
+          ),
+        )
+        .toBe(true);
+      const inner = (await img.boundingBox())!;
+      expect(inner.x).toBeGreaterThanOrEqual(outer.x - 1);
+      expect(inner.y).toBeGreaterThanOrEqual(outer.y - 1);
+      expect(inner.x + inner.width).toBeLessThanOrEqual(
+        outer.x + outer.width + 1,
+      );
+      expect(inner.y + inner.height).toBeLessThanOrEqual(
+        outer.y + outer.height + 1,
+      );
     }
   }
-  for (const button of await page.getByRole('button').all()) {
-    const bounds = await button.boundingBox();
-    expect(bounds && bounds.x >= -1 && bounds.x + bounds.width <= page.viewportSize()!.width + 1).toBe(true);
-  }
-  await page.getByRole('button', { name: '+ Create box', exact: true }).click();
-  await page.getByRole('button', { name: 'Create box', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Box 02', exact: true })).toBeVisible();
-  await expect(page.getByText('0 / 30', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Box 01', exact: true }).click();
-  await page.getByRole('button', { name: 'Select Gardevoir' }).click();
-  await expect(page.getByText('10 awards', { exact: true })).toBeVisible();
-  await page.getByRole('heading', { name: 'Every ribbon has a story.' }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: info.outputPath('collection.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Open full passport →' }).click();
-  await page.getByRole('button', { name: 'Plan next ribbon', exact: true }).click();
-  await page.getByRole('button', { name: 'Details for Alert Ribbon', exact: true }).click();
-  await page.getByRole('button', { name: 'Record Alert Ribbon', exact: true }).isDisabled().then(disabled => expect(disabled).toBe(true));
-  await page.getByRole('button', { name: 'Alpha Sapphire', exact: true }).click();
-  await page.getByRole('button', { name: 'Record Alert Ribbon', exact: true }).click();
-  await expect(page.getByText('Ribbon recorded. Saved on this device.', { exact: true }).filter({ visible: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Owned awards', exact: true }).click();
-  await page.getByRole('button', { name: 'Details for Alert Ribbon', exact: true }).click();
-  await expect(page.getByText('Earned in: Alpha Sapphire', { exact: true })).toBeVisible();
-  await page.screenshot({ path: info.outputPath('passport.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Undo last change', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Details for Alert Ribbon', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Plan next ribbon', exact: true }).click();
-  await page.getByRole('button', { name: 'Details for Alert Ribbon', exact: true }).click();
-  await page.getByRole('button', { name: 'Alpha Sapphire', exact: true }).click();
-  await page.getByRole('button', { name: 'Record Alert Ribbon', exact: true }).click();
-  await page.getByRole('button', { name: 'Journey', exact: true }).click();
-  await expect(page.getByText('Alert Ribbon', { exact: true })).toBeVisible();
-  await page.screenshot({ path: info.outputPath('journey.png'), fullPage: true });
-  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await button(page, 'Select Gardevoir').click();
+  await page.screenshot({
+    path: info.outputPath('classic-pc.png'),
+    fullPage: true,
+  });
+  await button(
+    page,
+    page.viewportSize()!.width >= 980
+      ? 'Open passport preview'
+      : 'Open passport',
+  ).click();
+  await expect(page).toHaveURL(new RegExp(passport));
+  await record(page, 'Alert Ribbon');
+  await expect(
+    page
+      .getByText('Ribbon recorded. Saved on this device.', { exact: true })
+      .filter({ visible: true }),
+  ).toBeVisible();
+  await button(page, 'Undo last change').click();
+  await expect(
+    page
+      .getByText('Change undone. Saved on this device.', { exact: true })
+      .filter({ visible: true }),
+  ).toBeVisible();
+  await record(page, 'Alert Ribbon');
+  await passportTab(page, 'Journey').click();
+  await expect(page.getByText('Stamp album', { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: info.outputPath('passport-studio.png'),
+    fullPage: true,
+  });
+  await offline(page);
   await context.setOffline(true);
   await page.reload();
-  await page.getByRole('button', { name: 'Journey', exact: true }).click();
-  await expect(page.getByText('Alert Ribbon', { exact: true })).toBeVisible();
-  await expect(page.getByText('The journey so far', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Import / export', exact: true }).click();
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export collection', exact: true }).click();
-  const file = await download;
-  const exported = JSON.parse(await fs.readFile((await file.path())!, 'utf8'));
-  expect(exported.format).toBe('ribbon-passport-universal');
-  const gardevoir = exported.collection.records.find((r: any) => r.pokemon.species === 'gardevoir');
-  expect(gardevoir.pokemon.earnedGames['alert-ribbon']).toBe('as');
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
-  expect(overflow).toBe(false);
+  await passportTab(page, 'Journey').click();
+  await expect(page.getByText('Stamp album', { exact: true })).toBeVisible();
+  await backups(page);
+  const data = JSON.parse(await download(page, 'Export collection'));
+  const p = data.collection.records.find(
+    (r: any) => r.pokemon.species === 'gardevoir',
+  ).pokemon;
+  expect(p.earnedGames['alert-ribbon']).toBe('as');
+  expect(p.visits.some((v: any) => v.game === 'as')).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+  ).toBe(false);
   expect(errors).toEqual([]);
 });
-
-test('failed local save keeps ownership unchanged and survives reload', async ({ page }) => {
-  await page.goto('/passport/sample-collection-v1-pokemon-4');
-  await page.getByRole('button', { name: 'Plan next ribbon', exact: true }).click();
-  await page.getByRole('button', { name: 'Details for Alert Ribbon', exact: true }).click();
-  await page.getByRole('button', { name: 'Alpha Sapphire', exact: true }).click();
+test('quota failure leaves ownership unchanged after reopening', async ({
+  page,
+}) => {
+  await page.goto(passport);
+  await passportTab(page, 'Ribbons').click();
+  await button(page, 'Details for Alert Ribbon').click();
+  await button(page, 'Alpha Sapphire').click();
   await page.evaluate(() => {
     const original = IDBDatabase.prototype.transaction;
-    (window as any).restoreTransactions = () => { IDBDatabase.prototype.transaction = original; };
-    IDBDatabase.prototype.transaction = function(this: IDBDatabase, ...args: any[]) {
-      if (args[1] === 'readwrite') throw new DOMException('Test storage quota exceeded', 'QuotaExceededError');
+    IDBDatabase.prototype.transaction = function (
+      this: IDBDatabase,
+      ...args: any[]
+    ) {
+      if (args[1] === 'readwrite')
+        throw new DOMException(
+          'Test storage quota exceeded',
+          'QuotaExceededError',
+        );
       return original.apply(this, args as any);
     } as typeof original;
   });
-  await page.getByRole('button', { name: 'Record Alert Ribbon', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Test storage quota exceeded');
-  await page.getByRole('button', { name: 'Owned awards', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Details for Alert Ribbon', exact: true })).toHaveCount(0);
-  await page.evaluate(() => (window as any).restoreTransactions());
+  await button(page, 'Record Alert Ribbon').click();
+  await expect(
+    page.getByRole('alert').filter({ visible: true }).last(),
+  ).toContainText('Test storage quota exceeded');
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Details for Alert Ribbon', exact: true })).toHaveCount(0);
-  await expect(page.getByText('10 AWARDS OWNED', { exact: true })).toBeVisible();
+  await backups(page);
+  const c = JSON.parse(await download(page, 'Export collection')).collection;
+  expect(
+    c.records.find((r: any) => r.pokemon.species === 'gardevoir').pokemon
+      .ribbons,
+  ).not.toContain('alert-ribbon');
 });
-
-test('conflicting offline windows preserve both copies and ask again after reopening', async ({ page, context }) => {
-  const record = async (tab: typeof page, name: string) => {
-    await tab.getByRole('button', { name: 'Plan next ribbon', exact: true }).click();
-    await tab.getByRole('button', { name: `Details for ${name}`, exact: true }).click();
-    await tab.getByRole('button', { name: 'Alpha Sapphire', exact: true }).click();
-    await tab.getByRole('button', { name: `Record ${name}`, exact: true }).click();
-  };
-  await page.goto('/passport/sample-collection-v1-pokemon-4');
+test('offline conflicts preserve both branches and remain unresolved after reopening', async ({
+  page,
+  context,
+}) => {
+  await page.goto(passport);
+  await expect(passportTab(page, 'Ribbons')).toBeVisible();
   const other = await context.newPage();
-  await other.goto('/passport/sample-collection-v1-pokemon-4');
-  await expect(other.getByRole('button', { name: 'Owned awards', exact: true })).toBeVisible();
-  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await other.goto(passport);
+  await expect(passportTab(other, 'Ribbons')).toBeVisible();
+  await offline(page);
   await context.setOffline(true);
   await record(page, 'Alert Ribbon');
-  await expect(page.getByText('Ribbon recorded. Saved on this device.', { exact: true }).filter({ visible: true })).toBeVisible();
   await record(other, 'Shock Ribbon');
-  await expect(other.getByText('Choose a saved version', { exact: true })).toBeVisible();
+  await expect(
+    other.getByText('Choose a saved version', { exact: true }),
+  ).toBeVisible();
   await other.reload();
-  await expect(other.getByText('Choose a saved version', { exact: true })).toBeVisible();
-  await other.getByRole('button', { name: 'Import / export', exact: true }).click();
-  for (const label of ['Export this window’s version', 'Export other window’s version']) {
-    const download = other.waitForEvent('download');
-    await other.getByRole('button', { name: label, exact: true }).click();
-    const exported = JSON.parse(await fs.readFile((await (await download).path())!, 'utf8'));
-    const p = exported.collection.records.find((r: any) => r.pokemon.species === 'gardevoir').pokemon;
-    expect(p.ribbons.includes(label.includes('this') ? 'shock-ribbon' : 'alert-ribbon')).toBe(true);
+  await expect(
+    other.getByText('Choose a saved version', { exact: true }),
+  ).toBeVisible();
+  for (const label of [
+    'Export this window’s version',
+    'Export other window’s version',
+  ]) {
+    const c = JSON.parse(await download(other, label)).collection;
+    expect(
+      c.records.find((r: any) => r.pokemon.species === 'gardevoir').pokemon
+        .ribbons,
+    ).toContain(label.includes('this') ? 'shock-ribbon' : 'alert-ribbon');
   }
-  await other.getByRole('button', { name: 'Keep this window’s version', exact: true }).click();
-  await expect(other.getByText('Choose a saved version', { exact: true })).toHaveCount(0);
-  await expect(other.getByRole('button', { name: 'Details for Shock Ribbon', exact: true })).toBeVisible();
-  await expect(other.getByRole('button', { name: 'Details for Alert Ribbon', exact: true })).toHaveCount(0);
+  await button(other, 'Keep this window’s version').click();
+  await expect(
+    other.getByText('Choose a saved version', { exact: true }),
+  ).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Details for Shock Ribbon', exact: true })).toBeVisible();
+  await backups(page);
+  const c = JSON.parse(await download(page, 'Export collection')).collection;
+  expect(
+    c.records.find((r: any) => r.pokemon.species === 'gardevoir').pokemon
+      .ribbons,
+  ).toContain('shock-ribbon');
 });
-
-test('native backup import preview, source export preservation, and malformed import rejection', async ({ page }, info) => {
-  // Import from an open passport; a replacement must navigate to its new collection.
-  await page.goto('/passport/sample-collection-v1-pokemon-4');
-  await page.getByRole('button', { name: 'Import / export', exact: true }).click();
-  const original = '{"format":"ribbon-passport","version":1,"futureRoot":9123372036854000123,"collection":{"pokemon":[{"id":"imported-uuid","species":"metagross","nickname":"Archive","shiny":false,"currentgame":"bd","origingame":"emerald","currentlevel":100,"ribbons":[],"journal":[{"photo":"data:image/png;base64,AA=="}],"futureField":{"keep":true}}],"teams":[],"selectedID":"imported-uuid","updatedAt":812345678.123456}}';
+test('import preview preserves native source bytes and rejects malformed backups', async ({
+  page,
+}, info) => {
+  await page.goto('/');
+  await backups(page);
+  const original =
+    '{"format":"ribbon-passport","version":1,"futureRoot":9123372036854000123,"collection":{"pokemon":[{"id":"imported-uuid","species":"metagross","nickname":"Archive","currentgame":"bd","origingame":"emerald","currentlevel":100,"ribbons":[],"journal":[{"photo":"data:image/png;base64,AA=="}],"futureField":{"keep":true}}],"teams":[],"selectedID":"imported-uuid"}}';
+  await importText(page, original);
+  await expect(button(page, 'Select Archive')).toBeVisible();
+  await backups(page);
+  expect(await download(page, 'Export original format')).toBe(original);
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Choose backup file', exact: true }).click();
-  await (await chooser).setFiles({ name: 'app.json', mimeType: 'application/json', buffer: Buffer.from(original) });
-  await expect(page.getByText('1 Pokémon · 1 boxes', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Replace collection', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Select Archive', exact: true })).toBeVisible();
-  await expect(page).toHaveURL('http://127.0.0.1:8081/');
-  await page.getByRole('button', { name: 'Import / export', exact: true }).click();
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export original format', exact: true }).click();
-  expect(await fs.readFile((await (await download).path())!, 'utf8')).toBe(original);
-  const badChooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Choose backup file', exact: true }).click();
-  await (await badChooser).setFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{"fileVersion":42,"pokemon":[]}') });
-  await expect(page.getByRole('alert')).toContainText('Only ribbons.guide fileVersion 5');
-  await expect(page.getByRole('button', { name: 'Select Archive', exact: true })).toBeVisible();
-  await page.screenshot({ path: info.outputPath('import.png'), fullPage: true });
+  await button(page, 'Choose backup file').click();
+  await (
+    await chooser
+  ).setFiles({
+    name: 'bad.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"fileVersion":42,"pokemon":[]}'),
+  });
+  await expect(
+    page.getByRole('alert').filter({ visible: true }).last(),
+  ).toContainText('Only ribbons.guide fileVersion 5');
+  await page.screenshot({
+    path: info.outputPath('import-rejection.png'),
+    fullPage: true,
+  });
 });

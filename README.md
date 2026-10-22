@@ -1,8 +1,8 @@
 # Ribbon Passport Universal
 
-A local-first React Native / Expo / TypeScript / Expo Router port of Ribbon Passport for web, iPhone, Android, iPad, and Android tablets. The first two slices cover collection organisation → passport → ribbons → Journey, with the iPhone app’s Sun/Moon PC artwork, shiny emblems and game mascots. It has no authentication, cloud backend, public sharing, community service, or widgets.
+A local-first React Native / Expo / TypeScript / Expo Router port of Ribbon Passport for web, iPhone, Android, iPad, and Android tablets. The current implementation covers Classic PC → Passport Studio, ribbon planning, Journey notebooks, separate competitive storage, personal teams, and the original bundled field guides/team library, using the iPhone app’s pixel typography, sage palette, PC artwork, game mascots and exact game-title colours. It has no authentication, cloud backend, public sharing, community service, or widgets.
 
-Chosen design direction: Classic PC storage opens Passport Studio. The original iPhone app defines the feature set; the [feature parity checklist](docs/UI-PARITY.md) records what exists and what still needs porting. The design mockup does not establish functional parity.
+Chosen design direction: Classic PC storage opens Passport Studio. The original iPhone app defines the feature set; the [feature parity checklist](docs/UI-PARITY.md) records what exists and what still needs porting. The production UI now implements that design; the checklist distinguishes implemented behavior from remaining differences and native validation gaps.
 
 ## Run locally
 
@@ -24,18 +24,16 @@ npm run serve
 
 Open http://127.0.0.1:8081. The development server is not the offline test target. A production export precaches the app shell, every route bundle, catalogue, font, and referenced image. Once caching completes, reloads and deep links work offline. A service worker update activates after the old windows close. Browser storage belongs to this origin; changing the port, clearing site data, or private-browsing policies can make a different/empty collection appear. Export backups for portability.
 
-## Try the slice
+## Try the app
 
-Use **Start a new collection** to review and create an empty PC (the previous collection is archived and the action can be undone). **Add Pokémon** opens the species/form and journey editor. **Edit Pokémon** changes details while retaining ribbon ownership and earning history. **Create box** adds storage; **Box settings** changes its name and wallpaper. Choose **Move Pokémon**, switch boxes, then choose a slot; occupied slots swap. The same action moves to/from the six-slot party. Mouse, Tab/Enter and touch use the same controls. **Find Pokémon** searches across boxes and filters by current game without rearranging slots.
-
-1. The first launch seeds six representative Pokémon from the reference app. Select **Box 01**, select a Pokémon, and use **Open full passport**.
-2. **Owned awards** shows the current ribbon case. **Show original records** exposes older ribbons represented by Memory Ribbons. Selecting an award shows its description and known earning location.
-3. For Gardevoir, choose **Plan next ribbon → Alert Ribbon → Alpha Sapphire → Record ribbon**. **Undo last change** restores the previous record. The separate Ribbon planner route uses the same rules and components.
-4. **Journey** shows recorded stops, known endpoints, and ribbons with a confirmed earning game. Generation-only earning history stays unassigned to a game.
-5. Reopen the app to restore local selection, ownership, visits, and source data. SQLite stores native collections; IndexedDB stores web collections. Saves are transactional and only acknowledged after success.
-6. **Import / export** previews imported backups before replacement. **Export collection** produces a complete universal backup. **Export original format** preserves the source document and overlays explicit ribbon/history edits. Imported original fields, unknown fields, embedded attachments, and numeric precision are retained. Other apps may ignore added history fields; universal-only layout/revision data needs a universal backup.
-
-The undo action covers the latest change in the current session. It is not a full persistent recovery browser. Replacement imports archive the old collection locally; exporting before replacement remains the most portable recovery option.
+1. Select a Pokémon in **Box 01**. On desktop, click its **Passport preview** to enter Passport Studio; phones use the **Passport** action under the PC. The original sprites fit both dimensions of their frames.
+2. Use **Overview**, **Ribbons** and **Journey**. Ribbons has the original game, earnable-only, last-chance/later-generation and paging controls, with original Memory Ribbon records available. For Gardevoir, record Alert Ribbon in Alpha Sapphire and use **Undo last change**.
+3. **Journey** contains Games/Generations stamps, edit visits, Milestones, Memories (including photos), Move Dex notes, and Field guides. Dates are optional or valid YYYY-MM-DD values; notes do not alter ribbon eligibility.
+4. **Collection options** contains Teams, Add Pokémon, import/export, new boxes and search. **Box options** changes wallpaper/name. Under Pokémon actions, choose Move then a destination slot (occupied slots swap), party/return, edit, individual export or delete. A new collection is reviewable and undoable.
+5. **Competitive** has separate boxes/party, Showdown import, builds, and personal teams with member ordering/defaults. **Team library** contains attributed source rosters and strategies; Save personal copy creates independently editable Pokémon with new IDs and zero awards.
+6. **Field guides** and **Team library** are available in Settings on every platform and in the desktop footer. The 25 offline guides cover every one of the 423 earning award/game pairs. Source notes stay private on the device. This is bundled reference content, not a public service.
+7. **Settings → App backup** imports with a preview, exports a complete universal collection, or writes the original source format while preserving unsupported fields. **Recovery history** reviews/exports/restores archived collections. Undo covers the latest change in the current session.
+8. Reopen to restore selection and data. SQLite stores native collections; IndexedDB stores web collections. Offline edits remain local. Divergent browser windows preserve both versions and require an explicit choice.
 
 ## Checks
 
@@ -67,7 +65,7 @@ On Windows, long React Native C++ paths may require `./scripts/build-android-win
 
 [Porting notes](docs/PORTING.md), [backup contract](docs/BACKUPS.md), and [future integration points](docs/ARCHITECTURE.md) describe the boundaries of this slice.
 
-The bundled `assets/prepared/` files use the original iPhone sprites. `node scripts/prepare-artwork.mjs` removes transparent padding and enlarges existing pixels with nearest-neighbour scaling; it does not download or substitute sprites. Both image dimensions fit inside their PC slot or preview, retaining the whole silhouette. `assets/data/sprite-provenance.json` records original source paths and checksums. Species without original bundled artwork show an unavailable marker. See [artwork notes](docs/SLICE-TWO.md).
+The bundled `assets/prepared/` files retain the original twelve iPhone sample sprites unchanged and add 27 team-member sprites from the same PokeSprite / Gen IX PokeAPI providers. `node scripts/prepare-artwork.mjs` removes transparent padding and enlarges existing pixels with nearest-neighbour scaling; it does not download sprites or replace the original samples. The explicit community bundling script records source URLs/checksums in `assets/data/community-sprite-sources.json`. Both image dimensions fit inside their PC slot or preview, retaining the whole silhouette. `assets/data/sprite-provenance.json` records original source paths and checksums. Species without original bundled artwork show an unavailable marker. See [artwork notes](docs/SLICE-TWO.md).
 
 ## Attribution
 

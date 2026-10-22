@@ -1,0 +1,18 @@
+{
+  "package": "ie.ribbonpassport.universal",
+  "artifact": "android/app/build/outputs/apk/release/app-release.apk",
+  "bytes": 38753704,
+  "sha256": "f627ad3888db40dfe11e943dbef667c9bdb4f9b895093247e42918fee66bc7bb",
+  "installedSha256": "f627ad3888db40dfe11e943dbef667c9bdb4f9b895093247e42918fee66bc7bb",
+  "mode": "Bundled release-mode APK; generated debug signing key; local emulator testing only",
+  "architecture": "x86_64",
+  "command": "./scripts/build-android-windows.ps1",
+  "originalSampleSprites": 12,
+  "additionalCommunitySprites": 27,
+  "replacementPortraitEntries": 0,
+  "domainBackupStorageArtworkTests": 54,
+  "browserTests": 32,
+  "published": false,
+  "pushed": false,
+  "recordedAt": "2026-10-22T07:19:04.907Z"
+}

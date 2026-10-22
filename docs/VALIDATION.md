@@ -1,4 +1,19 @@
-# Validation — 21 October 2026
+# Validation — 22 October 2026
+
+## Current production parity implementation
+
+- Strict TypeScript check and **54 domain/backup/storage/artwork tests passed**, with no failures or skips. Added coverage includes all 423 guide/earning-game pairs, independently editable attributed community teams, Showdown text/build round trips, notebook photos and removal, capture marks, metadata-specific source preservation, explicit deletion, chronological recovery, competitive opaque storage fields, and both six-member parties in native and guide-format exports.
+- **32 Chromium interaction tests passed** across 1440px desktop, 820px tablet, 390px phone and 320px small phone. Eight flows cover actual PC → Passport Studio navigation, sprite bounds, record/undo/Journey, offline reopen, IndexedDB quota failure, persisted offline conflict resolution, lossless native backup import/export and malformed rejection, box editing/movement/party, empty/add/edit/recovery, offline guides/sources/team copies/build editing, and memories/date validation/photos.
+- Production export and offline precache passed with **1,138 bundled files**. Current desktop/phone captures are the `parity-*` files in [web evidence](validation/web/); desktop PC/passport, the team library, and both phone layouts were visually inspected.
+- The Android native flow passed on the local **Android 36 x86_64 emulator**, at **1080×2400 / density 420** and **1600×2560 / density 240**. It uses the actual document picker to import samples, records/undoes/repeats a ribbon change, opens Journey and bundled guides, saves an independent community team/build, disables network access and force-stops/reopens, exports JSON through the native share flow, and verifies stable identities, attribution and earning location. The exact final APK is identified in [build metadata](validation/android/parity-build.json); [native results](validation/android/parity-result.json) and `parity-*` PNG/XML files contain evidence.
+- The emulator encountered a cold-boot **Android System UI** ANR while the completed Gradle daemon still held memory. The daemon was stopped and Wait dismissed the OS dialog before retrying. This is recorded separately from app behavior; physical Android devices remain untested.
+- The original twelve sample sprites are unchanged. Twenty-seven additional team-member icons use the original app’s providers; their upstream URLs/checksums are recorded. No replacement portrait bundle is present. The copied community-content JSON matches the reference SHA-256.
+- **iPhone/iPad native validation is blocked**: the user confirmed there is no Mac or cloud Mac access yet. No iOS build, signing, upload or native-validation success is claimed.
+
+The local feature set and remaining differences are listed in [UI-PARITY.md](UI-PARITY.md). Drag gestures, per-Pokémon recovery, dedicated Photos-library UI and widgets remain unported. Authentication, cloud sync and public services remain outside this slice. Nothing was committed, pushed or published.
+
+## Historical evidence — earlier slices (21 October 2026)
+
 
 ## Selected design and demo defaults
 
@@ -65,4 +80,4 @@ iOS/iPad native validation has **not run**: this Windows session has no connecte
 
 ## Scope limits
 
-The working slices include collection creation/editing and organisation, iPhone-style PC artwork, full passports, owned/planned ribbons, earning history, Journey, transactional local persistence, undo, and backup import/export. Browser responsiveness is reported separately from native results. There is no authentication, remote sync, publication, public guide service, community collection backend, or widget implementation. Rich unsupported backup fields are retained without presenting them as editable features. See [remaining integration work](ARCHITECTURE.md), [second-slice notes](SLICE-TWO.md), and [backup limits](BACKUPS.md).
+The working slices include collection creation/editing and organisation, iPhone-style PC artwork, full passports, owned/planned ribbons, earning history, Journey, transactional local persistence, undo, and backup import/export. Browser responsiveness is reported separately from native results. There is no authentication, remote sync, publication, public guide service, community collection backend, or widget implementation. Unsupported backup fields remain preserved. The current parity editors and their remaining differences are listed in UI-PARITY.md. See [remaining integration work](ARCHITECTURE.md), [second-slice notes](SLICE-TWO.md), and [backup limits](BACKUPS.md).

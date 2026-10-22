@@ -1,4 +1,4 @@
-html, body, #root { height: 100%; background: #e6eddb; image-rendering: pixelated; }
+html, body, #root { height: 100%; background: #1e2c1f; image-rendering: pixelated; }
 body { margin: 0; }
 img { image-rendering: pixelated; }
 button, input, textarea, select { font-family: Pixelify, sans-serif; }

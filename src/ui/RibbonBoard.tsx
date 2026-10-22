@@ -1,71 +1,390 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, TextInput, View, useWindowDimensions } from 'react-native';
-import { awardName, catalog, displayedAwards, earningLocation, gameName, ruleData, sortAwards } from '../domain/catalog';
-import { earningGames, generationEarningGames, managedAwardIDs, transferCheck } from '../domain/rules';
+import React, { useState } from 'react';
+import { Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import {
+  awardName,
+  catalog,
+  displayedAwards,
+  earningLocation,
+  gameName,
+  ruleData,
+  sortAwards,
+} from '../domain/catalog';
+import {
+  compatibleGames,
+  earningGames,
+  generationEarningGames,
+  transferCheck,
+  unavailableReason,
+} from '../domain/rules';
+import { ribbonView, type RibbonCategory } from '../domain/ribbon-view';
 import type { Pokemon } from '../domain/model';
 import { useCollection } from '../state/CollectionProvider';
-import { Art, Button, Panel, PixelText, Tag } from './primitives';
-import { colors, ui } from './theme';
-
-export function RibbonBoard({ pokemon: p, planner = false }: { pokemon: Pokemon; planner?: boolean }) {
-  const state = useCollection(), { width } = useWindowDimensions();
-  const [mode, setMode] = useState<'owned' | 'plan'>(planner ? 'plan' : 'owned');
-  const [originals, setOriginals] = useState(false), [allGames, setAllGames] = useState(false), [search, setSearch] = useState('');
-  const [selected, setSelected] = useState(''), [chosenGame, setChosenGame] = useState('');
-  const transfer = useMemo(() => transferCheck(p.currentgame, p), [p]);
-  const options = useMemo(() => Object.fromEntries(managedAwardIDs.map(id => [id, allGames ? earningGames(id, p) : p.ribbons.includes(id) ? [] : generationEarningGames(id, p.currentgame, p)])), [p, allGames]);
-  const owned = originals ? sortAwards(p.ribbons) : displayedAwards(p);
-  const ids = (mode === 'owned' ? owned : managedAwardIDs.filter(id => options[id]?.length)).filter(id => awardName(id).toLowerCase().includes(search.toLowerCase()));
-  const memoryGroup = selected.startsWith('contest-memory-ribbon') ? 'contest' : selected.startsWith('battle-memory-ribbon') ? 'battle' : '';
-  const represented = memoryGroup ? p.ribbons.filter(id => catalog.merges[id] === memoryGroup) : [];
-  const showDetails = (id: string) => { setSelected(selected === id ? '' : id); setChosenGame(''); };
-  const details = !!selected && ids.includes(selected) && <View testID="ribbon-details" style={{ borderWidth: 2, borderColor: colors.ink, padding: 18, gap: 14, backgroundColor: colors.paper }}>
-      <View style={ui.between}><View style={ui.row}><Art name={`award-${selected}`} size={36} /><PixelText style={{ fontSize: 25 }}>{awardName(selected)}</PixelText></View><Button onPress={() => setSelected('')}>Close details</Button></View>
-      <PixelText>{ruleData.awards[selected]?.description ?? 'No bundled description is available for this imported award.'}</PixelText>
-      {mode === 'owned' ? <>
-        {represented.length ? <>
-          <PixelText>{represented.length} original ribbons represented. Their earning history is kept individually.</PixelText>
-          {sortAwards(represented).map(id => <View key={id} style={ui.between}><PixelText>{awardName(id)}</PixelText><PixelText style={{ fontSize: 15, color: colors.muted }}>{earningLocation(p, id)}</PixelText></View>)}
-          <Button onPress={() => { setOriginals(true); setSelected(''); }}>Edit original ribbon records</Button>
-        </> : <>
-          <PixelText>Earned in: {earningLocation(p, selected)}</PixelText>
-          <Button disabled={state.busy} label={`Remove ${awardName(selected)}`} onPress={() => state.change(p.id, selected)}>Remove ribbon</Button>
-        </>}
-      </> : <>
-        {transfer.lastChance.includes(selected) && <Tag>Last chance before leaving this generation</Tag>}
-        <PixelText style={ui.label}>EARNED IN</PixelText>
-        <View style={[ui.row, { gap: 8 }]}>{options[selected]?.map(game => <Button key={game} art={`game-${game}-light`} primary={chosenGame === game} onPress={() => setChosenGame(game)}>{gameName(game)}</Button>)}</View>
-        <Button primary disabled={!chosenGame || state.busy} label={`Record ${awardName(selected)}`} onPress={async () => { await state.change(p.id, selected, chosenGame); setChosenGame(''); }}>Record ribbon</Button>
-      </>}
-    </View>;
-  return <Panel style={{ padding: width < 600 ? 16 : 22 }}>
-    <View style={ui.between}><PixelText style={ui.heading}>{planner ? 'Plan the next ribbon' : 'Ribbon case'}</PixelText><PixelText style={ui.label}>{displayedAwards(p).length} AWARDS OWNED</PixelText></View>
-    <View style={ui.row}>
-      <Button primary={mode === 'owned'} onPress={() => { setMode('owned'); setSelected(''); }}>Owned awards</Button>
-      <Button primary={mode === 'plan'} onPress={() => { setMode('plan'); setSelected(''); }}>Plan next ribbon</Button>
-    </View>
-    <TextInput accessibilityLabel="Search ribbons" placeholder="Search ribbons…" placeholderTextColor={colors.muted} value={search} onChangeText={setSearch} style={ui.input} />
-    {mode === 'owned' ? <View style={{ gap: 10 }}>
-      <PixelText style={{ fontSize: 16, color: colors.muted }}>Select an award for its description and earning location. Memory Ribbons combine older ribbons for display.</PixelText>
-      <Button onPress={() => { setOriginals(!originals); setSelected(''); }}>{originals ? 'Show current ribbon case' : `Show original records (${p.ribbons.length})`}</Button>
-    </View> : <>
-      <View style={ui.row}>
-        <Button primary={!allGames} onPress={() => { setAllGames(false); setSelected(''); }}>This generation</Button>
-        <Button primary={allGames} onPress={() => { setAllGames(true); setSelected(''); }}>All reachable games</Button>
+import { useTheme } from './theme';
+import { Art, Button, GameLabel, Panel, PixelText } from './primitives';
+import { EditorSheet, ChoiceField } from './Editors';
+import { AwardGrid, TransferSheet, TransferStatus } from './PassportPanels';
+export function RibbonBoard({
+  pokemon: p,
+  planner = false,
+}: {
+  pokemon: Pokemon;
+  planner?: boolean;
+}) {
+  const state = useCollection(),
+    router = useRouter(),
+    { colors, ui } = useTheme();
+  const [game, setGame] = useState(p.currentgame),
+    [earnable, setEarnable] = useState(true),
+    [catalogue, setCatalogue] = useState(false),
+    [category, setCategory] = useState<RibbonCategory>('All'),
+    [size, setSize] = useState(24),
+    [page, setPage] = useState(0),
+    [sheet, setSheet] = useState(''),
+    [selected, setSelected] = useState(''),
+    [chosenGame, setChosenGame] = useState(''),
+    [originals, setOriginals] = useState(false);
+  const check = transferCheck(game, p),
+    ids = ribbonView(p, game, catalogue, earnable, category),
+    pages = Math.max(1, Math.ceil(ids.length / size)),
+    visiblePage = Math.min(page, pages - 1),
+    owned = displayedAwards(p),
+    selectedOwned = p.ribbons.includes(selected) || owned.includes(selected),
+    memoryGroup = selected.startsWith('contest-memory-ribbon')
+      ? 'contest'
+      : selected.startsWith('battle-memory-ribbon')
+        ? 'battle'
+        : '',
+    represented = memoryGroup
+      ? p.ribbons.filter((id) => catalog.merges[id] === memoryGroup)
+      : [],
+    options = selected ? earningGames(selected, p) : [];
+  const detail = (id: string) => {
+    setSelected(id);
+    setChosenGame('');
+  };
+  return (
+    <View style={{ gap: 14 }}>
+      <View style={ui.between}>
+        <View style={{ gap: 4, flex: 1 }}>
+          <GameLabel game={game} />
+          <PixelText style={{ fontSize: 11, color: colors.muted }}>
+            GEN {ruleData.games[game]?.gen ?? '?'} ·{' '}
+            {game === p.currentgame ? 'Current game' : 'Planning view'}
+          </PixelText>
+        </View>
+        <Button onPress={() => setSheet('games')}>Browse game</Button>
       </View>
-      <PixelText style={{ fontSize: 16, color: colors.muted }}>Choose an award, then the game where you earned it. Recording an award never changes your current game.</PixelText>
-    </>}
-    {ids.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-      {ids.map(id => <React.Fragment key={id}><Pressable accessibilityRole="button" accessibilityLabel={`Details for ${awardName(id)}`} accessibilityState={{ expanded: selected === id }} onPress={() => showDetails(id)}
-        style={({ pressed }) => ({ width: width < 600 ? '100%' : '48.8%', flexGrow: 1, minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: selected === id ? 2 : 1, borderColor: selected === id ? colors.ink : colors.border, backgroundColor: selected === id ? colors.board : colors.panel, opacity: pressed ? 0.7 : 1 })}>
-        <Art name={`award-${id}`} size={30} />
-        <View style={{ flex: 1, gap: 4 }}><PixelText>{awardName(id)}</PixelText><PixelText style={{ fontSize: 14, color: colors.muted }}>{mode === 'owned' ? memoryLabel(id, p) : transfer.lastChance.includes(id) ? 'Last chance this generation' : `${options[id]?.length ?? 0} earning games`}</PixelText></View>
-      </Pressable>{selected === id && <View style={{ width: '100%' }}>{details}</View>}</React.Fragment>)}
-    </View> : <PixelText>No {mode === 'owned' ? 'owned awards' : 'eligible ribbons'} match this view.</PixelText>}
-
-  </Panel>;
-}
-function memoryLabel(id: string, p: Pokemon) {
-  if (id.includes('-memory-ribbon')) return 'Automatic Memory Ribbon';
-  return earningLocation(p, id);
+      <View style={ui.between}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel="Earnable only"
+          accessibilityState={{ checked: earnable }}
+          onPress={() => {
+            setEarnable(!earnable);
+            setPage(0);
+          }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            minHeight: 40,
+          }}
+        >
+          <View
+            style={{
+              padding: 9,
+              minWidth: 42,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: earnable ? colors.board : colors.panel,
+            }}
+          >
+            <PixelText style={{ fontSize: 13 }}>
+              {earnable ? 'ON' : 'OFF'}
+            </PixelText>
+          </View>
+          <PixelText style={{ fontSize: 14 }}>Earnable only</PixelText>
+        </Pressable>
+        <Button
+          primary={catalogue}
+          onPress={() => {
+            setCatalogue(!catalogue);
+            setCategory('All');
+            setPage(0);
+          }}
+        >
+          All games
+        </Button>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 5 }}>
+        {(['All', 'Last chance', 'Later gens'] as const).map((value) => (
+          <View key={value} style={{ flex: 1 }}>
+            <Button
+              primary={category === value}
+              onPress={() => {
+                setCategory(value);
+                setPage(0);
+              }}
+            >
+              {value}
+            </Button>
+          </View>
+        ))}
+      </View>
+      <View style={ui.between}>
+        <PixelText style={{ fontSize: 11, color: colors.muted }}>
+          {ids.length} {ids.length === 1 ? 'match' : 'matches'} ·{' '}
+          {catalogue ? 'All games' : 'This game'}
+        </PixelText>
+        <Button
+          onPress={() => {
+            setSize(size === 24 ? 6 : 24);
+            setPage(0);
+          }}
+        >{`${size}/pg`}</Button>
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 5,
+          minHeight: 220,
+        }}
+      >
+        {ids.slice(visiblePage * size, (visiblePage + 1) * size).map((id) => {
+          const has = p.ribbons.includes(id) || owned.includes(id),
+            last = check.lastChance.includes(id);
+          return (
+            <Pressable
+              key={id}
+              accessibilityRole="button"
+              accessibilityLabel={`Details for ${awardName(id)}`}
+              onPress={() => detail(id)}
+              style={{
+                width: size === 24 ? '15.1%' : '31.8%',
+                minHeight: size === 24 ? 63 : 100,
+                borderWidth: 1,
+                borderColor: last ? colors.warningInk : colors.border,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: last ? colors.warning : colors.panel,
+                paddingTop: 5,
+              }}
+            >
+              <Art name={'award-' + id} size={size === 24 ? 31 : 48} />
+              <View
+                style={{
+                  borderTopWidth: 1,
+                  borderColor: colors.border,
+                  width: '100%',
+                  alignItems: 'center',
+                  paddingVertical: 4,
+                }}
+              >
+                <PixelText
+                  style={{
+                    fontSize: 16,
+                    color: last ? colors.warningInk : colors.ink,
+                  }}
+                >
+                  {has ? '✓' : '+'}
+                </PixelText>
+              </View>
+            </Pressable>
+          );
+        })}
+        {!ids.length && (
+          <PixelText style={{ color: colors.muted }}>
+            {game
+              ? 'No unearned ribbons in this selection.'
+              : 'Set a current game to choose ribbons.'}
+          </PixelText>
+        )}
+      </View>
+      <View style={ui.between}>
+        <Button
+          disabled={visiblePage === 0}
+          onPress={() => setPage(visiblePage - 1)}
+        >
+          ‹ Previous
+        </Button>
+        <PixelText style={{ fontSize: 13 }}>
+          Page {visiblePage + 1}/{pages}
+        </PixelText>
+        <Button
+          disabled={visiblePage + 1 >= pages}
+          onPress={() => setPage(visiblePage + 1)}
+        >
+          Next ›
+        </Button>
+      </View>
+      <TransferStatus
+        pokemon={{ ...p, currentgame: game }}
+        onPress={() => setSheet('transfer')}
+      />
+      <View style={ui.row}>
+        <Button
+          onPress={() => setSheet('owned')}
+        >{`Owned · ${owned.length} ▴`}</Button>
+        <Button onPress={() => setSheet('size')}>Size marks</Button>
+      </View>
+      {sheet === 'games' && (
+        <EditorSheet title="Browse game" onClose={() => setSheet('')}>
+          <ChoiceField
+            label="Game"
+            game
+            value={game}
+            onChange={(g) => {
+              setGame(g);
+              setPage(0);
+              setSheet('');
+            }}
+            options={compatibleGames(p).map((id) => ({
+              id,
+              name: gameName(id),
+            }))}
+          />
+        </EditorSheet>
+      )}
+      {sheet === 'transfer' && (
+        <TransferSheet pokemon={p} onClose={() => setSheet('')} />
+      )}
+      {sheet === 'size' && (
+        <EditorSheet title="Size marks" onClose={() => setSheet('')}>
+          <PixelText>
+            Size marks depend on the recorded scale and a compatible game.
+          </PixelText>
+          <AwardGrid
+            ids={['mini-mark', 'jumbo-mark']}
+            onSelect={(id) => {
+              setSheet('');
+              detail(id);
+            }}
+          />
+        </EditorSheet>
+      )}
+      {sheet === 'owned' && (
+        <EditorSheet title="Owned awards" onClose={() => setSheet('')}>
+          <PixelText>{owned.length} awards owned</PixelText>
+          <Button onPress={() => setOriginals(!originals)}>
+            {originals
+              ? 'Show current ribbon case'
+              : `Show original records (${p.ribbons.length})`}
+          </Button>
+          <AwardGrid
+            ids={originals ? sortAwards(p.ribbons) : owned}
+            onSelect={(id) => {
+              setSheet('');
+              detail(id);
+            }}
+          />
+        </EditorSheet>
+      )}
+      {!!selected && (
+        <EditorSheet
+          title={awardName(selected)}
+          onClose={() => setSelected('')}
+        >
+          <View style={ui.row}>
+            <Art name={'award-' + selected} size={40} />
+            <PixelText style={{ fontSize: 22 }}>
+              {awardName(selected)}
+            </PixelText>
+          </View>
+          <PixelText>
+            {ruleData.awards[selected]?.description ??
+              'No bundled description is available for this imported award.'}
+          </PixelText>
+          {selectedOwned ? (
+            <>
+              {represented.length ? (
+                <>
+                  <PixelText>
+                    {represented.length} original ribbons represented. Their
+                    earning history is kept individually.
+                  </PixelText>
+                  {sortAwards(represented).map((id) => (
+                    <View key={id} style={ui.between}>
+                      <PixelText style={{ fontSize: 14 }}>
+                        {awardName(id)}
+                      </PixelText>
+                      <PixelText style={{ fontSize: 13, color: colors.muted }}>
+                        {earningLocation(p, id)}
+                      </PixelText>
+                      <Button
+                        disabled={state.busy}
+                        onPress={() => state.change(p.id, id)}
+                      >
+                        Remove
+                      </Button>
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <PixelText>
+                    Earned in: {earningLocation(p, selected)}
+                  </PixelText>
+                  <Button
+                    disabled={state.busy}
+                    label={`Remove ${awardName(selected)}`}
+                    onPress={async () => {
+                      if (await state.change(p.id, selected)) setSelected('');
+                    }}
+                  >
+                    Remove ribbon
+                  </Button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <PixelText style={ui.label}>EARNED IN</PixelText>
+              <View style={ui.row}>
+                {options.map((g) => (
+                  <Button
+                    key={g}
+                    art={`game-${g}-dark`}
+                    primary={chosenGame === g}
+                    onPress={() => setChosenGame(g)}
+                  >
+                    {gameName(g)}
+                  </Button>
+                ))}
+              </View>
+              {!options.length && (
+                <PixelText>
+                  {unavailableReason(selected, game, p) ||
+                    'This award cannot be earned manually in a reachable game.'}
+                </PixelText>
+              )}
+              <Button
+                primary
+                disabled={!chosenGame || state.busy}
+                label={`Record ${awardName(selected)}`}
+                onPress={async () => {
+                  if (await state.change(p.id, selected, chosenGame))
+                    setSelected('');
+                }}
+              >
+                Record ribbon
+              </Button>
+            </>
+          )}
+          <Button
+            onPress={() => {
+              setSelected('');
+              router.push({
+                pathname: '/guides',
+                params: { award: selected, game },
+              });
+            }}
+          >
+            Field guide ›
+          </Button>
+        </EditorSheet>
+      )}
+    </View>
+  );
 }
