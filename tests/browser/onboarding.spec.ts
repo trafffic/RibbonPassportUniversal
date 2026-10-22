@@ -49,3 +49,15 @@ test('party visibility persists per section and Export Ribbon Masters downloads'
   expect(guide.pokemon).toHaveLength(6);
   expect(guide.pokemon.some((p: any) => p.showdownSet)).toBe(false);
 });
+test('a missing Pokémon offers a way back and Settings shows the version', async ({
+  page,
+}) => {
+  await demo(page, '/passport/does-not-exist');
+  await expect(
+    page.getByText('This Pokémon is no longer in your collection.'),
+  ).toBeVisible();
+  await button(page, 'Recovery history').click();
+  await expect(page).toHaveURL(/\/recovery/);
+  await page.goto('/settings');
+  await expect(page.getByText(/^Ribbon Passport \d+\.\d+\.\d+$/)).toBeVisible();
+});

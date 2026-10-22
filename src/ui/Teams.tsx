@@ -1,3 +1,4 @@
+import { Missing } from './Missing';
 import React, { useState } from 'react';
 import { View, TextInput } from 'react-native';
 import * as Crypto from 'expo-crypto';
@@ -203,7 +204,7 @@ export function PersonalTeam({ id }: { id: string }) {
     [edit, setEdit] = useState(false),
     [deleting, setDeleting] = useState(false),
     [error, setError] = useState('');
-  if (!team) return <PixelText>Team not found.</PixelText>;
+  if (!team) return <Missing message="This team is no longer in your collection." />;
   const members = team.memberIDs.flatMap(
       (id) => state.collection!.records.find((r) => r.id === id)?.pokemon ?? [],
     ),
@@ -461,7 +462,7 @@ export function Build({ id }: { id: string }) {
     r = state.collection?.records.find((r) => r.id === id),
     [editing, setEditing] = useState(false),
     [error, setError] = useState('');
-  if (!r) return <PixelText>Pokémon not found.</PixelText>;
+  if (!r) return <Missing message="This Pokémon is no longer in your collection." />;
   const p = r.pokemon,
     b = p.showdownSet;
   if (!b)

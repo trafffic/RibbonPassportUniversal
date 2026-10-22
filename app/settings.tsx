@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Linking, View, TextInput } from 'react-native';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../src/state/CollectionProvider';
 import { updateMetadata } from '../src/domain/passport';
@@ -106,6 +107,9 @@ export default function Settings() {
       <PixelText style={{ fontSize: 13, color: colors.muted }}>
         Unofficial fan app. Pokémon artwork © its respective owners. Pixelify
         Sans is bundled under SIL OFL 1.1.
+      </PixelText>
+      <PixelText style={{ fontSize: 13, color: colors.muted }}>
+        Ribbon Passport {Constants.expoConfig?.version ?? ''}
       </PixelText>
       {!!sheet && (
         <EditorSheet title={sheet} onClose={() => setSheet('')}>

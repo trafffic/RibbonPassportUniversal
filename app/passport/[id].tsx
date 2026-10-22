@@ -1,3 +1,4 @@
+import { Missing } from '../../src/ui/Missing';
 import React, { useState, useEffect } from 'react';
 import { View, Pressable, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -175,7 +176,7 @@ export default function PassportScreen() {
           )}
         </View>
       ) : (
-        <PixelText>Pokémon not found in this collection.</PixelText>
+        <Missing message="This Pokémon is no longer in your collection." />
       )}
       {menu === 'Options' && (
         <EditorSheet title="Passport options" onClose={() => setMenu('')}>
