@@ -1,3 +1,4 @@
+import { tintHex, tierColour } from '../domain/art-ui';
 import {
   transferTitle,
   transferSummary,
@@ -28,11 +29,19 @@ import { patchPassport } from "../domain/passport";
 import { guidesFor } from "../domain/community";
 import { useCollection } from "../state/CollectionProvider";
 import { useTheme } from "./theme";
-import { Art, Button, GameLabel, Panel, PixelText, Sprite } from "./primitives";
+import {
+  Art,
+  Button,
+  ConsoleIcon,
+  GameLabel,
+  Panel,
+  PixelText,
+  Sprite,
+} from "./primitives";
 import { ChoiceField, EditorSheet, Field } from "./Editors";
 import { bubblePlacement, type Rect } from "./bubble-placement";
 export function PassportHero({ pokemon: p }: { pokemon: Pokemon }) {
-  const { colors } = useTheme();
+  const { colors, dark } = useTheme();
   return (
     <View
       style={{
@@ -47,8 +56,17 @@ export function PassportHero({ pokemon: p }: { pokemon: Pokemon }) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
           <PixelText style={{ fontSize: 25 }}>{displayName(p)}</PixelText>
           {p.shiny && <Art name="shiny-dark" label="Shiny" size={17} />}
+          <ConsoleIcon game={p.origingame} />
         </View>
-        <PixelText style={{ fontSize: 14, color: colors.muted }}>
+        <PixelText
+          style={{
+            fontSize: 14,
+            color:
+              (p.title && p.title !== 'None'
+                ? tintHex('award-' + p.title, dark)
+                : undefined) ?? colors.muted,
+          }}
+        >
           {p.titleText || catalog.titles[p.title] || "No title equipped"}
         </PixelText>
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
@@ -116,7 +134,7 @@ export function AwardGrid({
             padding: 6,
             borderRadius: 4,
             borderWidth: 2,
-            borderColor: selected === id ? colors.accent : "transparent",
+            borderColor: selected === id ? colors.accent : tierColour(id),
             backgroundColor: selected === id ? colors.panel : "transparent",
           }}
         >
