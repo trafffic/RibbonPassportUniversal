@@ -211,6 +211,8 @@ export function recoveryChanges(c: Collection, e: RecoveryEntry): string[] {
       out.push('Restore the saved journey notes and photos.');
     if (!same(now.moveNotes, old.moveNotes))
       out.push('Restore the saved Move Dex notes.');
+    if (!same(now.savedBuilds, old.savedBuilds))
+      out.push('Restore the saved build notebook.');
     if (!same(now.showdownSet, old.showdownSet))
       out.push('Restore the saved competitive build.');
     if (now.title !== old.title || now.titleText !== old.titleText)

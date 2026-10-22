@@ -25,6 +25,7 @@ export interface Pokemon {
   honors?: Honor[];
   journal?: Memory[];
   moveNotes?: MoveNote[];
+  savedBuilds?: SavedBuild[];
 }
 export interface ShowdownSet {
   item: string;
@@ -61,6 +62,13 @@ export interface MoveNote {
   game: string;
   note: string;
   homeChecked: boolean;
+}
+export interface SavedBuild {
+  id: string;
+  name: string;
+  build: ShowdownSet;
+  note: string;
+  sourceIDs: string[];
 }
 export interface Team {
   id: string;

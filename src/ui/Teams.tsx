@@ -10,6 +10,14 @@ import {
   importShowdownTeam,
 } from '../domain/showdown';
 import { displayName, gameName, sortGames, ruleData } from '../domain/catalog';
+import {
+  applyBuildVersion,
+  diffBuild,
+  exportBuildVersion,
+  removeBuildVersion,
+  saveBuildVersion,
+  savedBuilds,
+} from '../domain/build-notebook';
 import type { Pokemon, ShowdownSet, Team } from '../domain/model';
 import { saveBackup } from '../backup/files';
 import { useTheme } from './theme';
@@ -298,6 +306,7 @@ export function Build({ id }: { id: string }) {
         </Button>
       </View>
       {!!error && <PixelText accessibilityRole="alert">{error}</PixelText>}
+      <BuildNotebook pokemon={p} expected={r.version.revision} />
       {editing && (
         <BuildEditor
           pokemon={p}
@@ -305,6 +314,148 @@ export function Build({ id }: { id: string }) {
           onClose={() => setEditing(false)}
         />
       )}
+    </View>
+  );
+}
+function BuildNotebook({
+  pokemon: p,
+  expected,
+}: {
+  pokemon: Pokemon;
+  expected: string;
+}) {
+  const state = useCollection(),
+    { ui } = useTheme(),
+    [name, setName] = useState(''),
+    [note, setNote] = useState(''),
+    [open, setOpen] = useState(''),
+    [message, setMessage] = useState(''),
+    [error, setError] = useState(''),
+    versions = savedBuilds(p),
+    current = p.showdownSet!;
+  const run = async (
+    work: () => Promise<boolean | void> | boolean | void,
+    done: string,
+  ) => {
+    setError('');
+    setMessage('');
+    try {
+      if ((await work()) !== false) setMessage(done);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return (
+    <View style={{ gap: 12 }}>
+      <PixelText style={ui.heading}>Build notebook</PixelText>
+      <Field label="Version name" value={name} onChange={setName} />
+      <Field label="Version notes (optional)" value={note} onChange={setNote} />
+      <Button
+        primary
+        disabled={state.busy || !name.trim()}
+        onPress={() =>
+          run(async () => {
+            if (
+              !(await state.mutate((c, ctx) =>
+                saveBuildVersion(
+                  c,
+                  p.id,
+                  { id: Crypto.randomUUID(), name, note },
+                  expected,
+                  ctx,
+                ),
+              ))
+            )
+              return false;
+            setName('');
+            setNote('');
+          }, 'Version saved')
+        }
+      >
+        Save current build
+      </Button>
+      {!!message && <PixelText accessibilityRole="alert">{message}</PixelText>}
+      {!!error && <PixelText accessibilityRole="alert">{error}</PixelText>}
+      {!versions.length && (
+        <PixelText>
+          No saved versions yet. Name the current build to keep it here.
+        </PixelText>
+      )}
+      {versions.map((v) => {
+        const differences = diffBuild(v.build, current);
+        return (
+          <Panel key={v.id}>
+            <PixelText style={ui.heading}>{v.name}</PixelText>
+            {!!v.note && <PixelText>{v.note}</PixelText>}
+            <PixelText>
+              {!differences.length
+                ? 'Matches current build'
+                : `${differences.length} ${differences.length === 1 ? 'field differs' : 'fields differ'} from current build`}
+            </PixelText>
+            {open === v.id &&
+              differences.map((d) => (
+                <PixelText key={d.label}>
+                  {d.label}: {d.saved || 'Not set'} → {d.current || 'Not set'}
+                </PixelText>
+              ))}
+            <View style={ui.row}>
+              <Button
+                label={`Compare ${v.name}`}
+                onPress={() => setOpen(open === v.id ? '' : v.id)}
+              >
+                {open === v.id ? 'Hide diff' : 'Diff'}
+              </Button>
+              <Button
+                label={`Apply ${v.name}`}
+                disabled={state.busy}
+                onPress={() =>
+                  run(
+                    () =>
+                      state.mutate(
+                        (c, ctx) =>
+                          applyBuildVersion(c, p.id, v.id, expected, ctx),
+                        'Version applied. You can undo this change.',
+                      ),
+                    'Version applied',
+                  )
+                }
+              >
+                Apply
+              </Button>
+              <Button
+                label={`Export ${v.name}`}
+                onPress={() =>
+                  run(
+                    () =>
+                      saveBackup(
+                        exportBuildVersion(p, v.id),
+                        'RibbonPassport-Build.txt',
+                      ),
+                    'Version exported',
+                  )
+                }
+              >
+                Export Showdown
+              </Button>
+              <Button
+                label={`Remove ${v.name}`}
+                disabled={state.busy}
+                onPress={() =>
+                  run(
+                    () =>
+                      state.mutate((c, ctx) =>
+                        removeBuildVersion(c, p.id, v.id, expected, ctx),
+                      ),
+                    'Version removed',
+                  )
+                }
+              >
+                Remove
+              </Button>
+            </View>
+          </Panel>
+        );
+      })}
     </View>
   );
 }

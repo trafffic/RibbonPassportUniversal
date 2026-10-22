@@ -61,6 +61,25 @@ test('bundled field guides, sources and personal team copies work offline', asyn
     .getByRole('textbox', { name: 'Moves', exact: true })
     .fill('Protect\nSubstitute');
   await button(page, 'Save build').click();
+  await page
+    .getByRole('textbox', { name: 'Version name', exact: true })
+    .fill('Lead');
+  await button(page, 'Save current build').click();
+  await expect(page.getByText('Version saved', { exact: true })).toBeVisible();
+  await button(page, 'Edit build').click();
+  await page
+    .getByRole('textbox', { name: 'Item', exact: true })
+    .fill('Choice Band');
+  await button(page, 'Save build').click();
+  await button(page, 'Compare Lead').click();
+  await expect(page.getByText(/Item: Leftovers → Choice Band/)).toBeVisible();
+  await button(page, 'Apply Lead').click();
+  await expect(
+    page.getByText('Matches current build', { exact: true }),
+  ).toBeVisible();
+  const versionText = await download(page, 'Export Lead');
+  expect(versionText).toContain('@ Leftovers');
+  expect(versionText).toContain('- Substitute');
   await offline(page);
   await context.setOffline(true);
   await page.reload();

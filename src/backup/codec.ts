@@ -4,6 +4,7 @@ import type {
   Collection,
   PassportRecord,
   Pokemon,
+  ShowdownSet,
   Visit,
 } from '../domain/model';
 import { editableFields } from '../domain/organisation';
@@ -40,6 +41,18 @@ export function parseJSON(text: string): unknown {
   }
 }
 export const serializeJSON = (value: unknown) => stringify(value, null, 2)!;
+function showdownProjection(v: Obj): ShowdownSet {
+  return {
+    item: textValue(v.item),
+    ability: textValue(v.ability),
+    nature: textValue(v.nature),
+    evs: textValue(v.evs),
+    ivs: textValue(v.ivs),
+    teraType: textValue(v.teraType),
+    moves: stringArray(v.moves) ? v.moves : [],
+    ...(stringArray(v.extraLines) ? { extraLines: v.extraLines } : {}),
+  };
+}
 function normalize(entry: Obj, id: string): Pokemon {
   const extras = (key: string, fields: string[]) =>
     Array.isArray(entry[key])
@@ -121,22 +134,7 @@ function normalize(entry: Obj, id: string): Pokemon {
     ball: typeof entry.ball === 'string' ? entry.ball : undefined,
     ...(typeof entry.source === 'string' ? { source: entry.source } : {}),
     ...(object(entry.showdownSet)
-      ? {
-          showdownSet: {
-            item: textValue(entry.showdownSet.item),
-            ability: textValue(entry.showdownSet.ability),
-            nature: textValue(entry.showdownSet.nature),
-            evs: textValue(entry.showdownSet.evs),
-            ivs: textValue(entry.showdownSet.ivs),
-            teraType: textValue(entry.showdownSet.teraType),
-            moves: stringArray(entry.showdownSet.moves)
-              ? entry.showdownSet.moves
-              : [],
-            ...(stringArray(entry.showdownSet.extraLines)
-              ? { extraLines: entry.showdownSet.extraLines }
-              : {}),
-          },
-        }
+      ? { showdownSet: showdownProjection(entry.showdownSet) }
       : {}),
     ...(stringArray(entry.communitySourceIDs)
       ? { communitySourceIDs: entry.communitySourceIDs }
@@ -166,6 +164,23 @@ function normalize(entry: Obj, id: string): Pokemon {
             'text',
             'photo',
           ]) as unknown as Pokemon['journal'],
+        }
+      : {}),
+    ...(Array.isArray(entry.savedBuilds)
+      ? {
+          savedBuilds: entry.savedBuilds.flatMap((v) =>
+            object(v) && typeof v.id === 'string' && object(v.build)
+              ? [
+                  {
+                    id: v.id,
+                    name: textValue(v.name),
+                    build: showdownProjection(v.build),
+                    note: textValue(v.note),
+                    sourceIDs: stringArray(v.sourceIDs) ? v.sourceIDs : [],
+                  },
+                ]
+              : [],
+          ),
         }
       : {}),
     ...(Array.isArray(entry.moveNotes)
@@ -479,6 +494,7 @@ export function validateCollection(value: Collection): Collection {
     'honors',
     'journal',
     'moveNotes',
+    'savedBuilds',
     'showdownSet',
     'source',
     'communitySourceIDs',
@@ -616,21 +632,30 @@ export function exportSource(collection: Collection): string {
             delete map[id];
         entry[key] = map;
       } else if (
-        ['honors', 'journal', 'moveNotes'].includes(key) &&
+        ['honors', 'journal', 'moveNotes', 'savedBuilds'].includes(key) &&
         Array.isArray(val)
       ) {
         const original = Array.isArray(entry[key])
           ? (entry[key] as unknown[])
           : [];
         entry[key] = [
-          ...val.map((row) => ({
-            ...(original.find(
+          ...val.map((row) => {
+            const old = original.find(
               (old) => object(old) && old.id === row.id,
-            ) as Obj),
-            ...row,
-          })),
+            ) as Obj | undefined;
+            return {
+              ...old,
+              ...row,
+              ...(key === 'savedBuilds' && object(old?.build)
+                ? { build: { ...old.build, ...row.build } }
+                : {}),
+            };
+          }),
           ...original.filter(
-            (old) => !object(old) || typeof old.id !== 'string',
+            (old) =>
+              !object(old) ||
+              typeof old.id !== 'string' ||
+              (key === 'savedBuilds' && !object(old.build)),
           ),
         ];
       } else if (key === 'visits' && Array.isArray(val)) {
