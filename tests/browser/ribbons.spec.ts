@@ -113,3 +113,11 @@ test('species without bundled art load their sprite, falling back through the so
   await expect.poll(() => tried[0]).toContain('pokesprite');
   await expect.poll(() => tried.at(-1)).toContain('pokemonshowdown.com');
 });
+test('Escape closes the topmost sheet', async ({ page }) => {
+  await demo(page, passport);
+  await passportTab(page, 'Ribbons').click();
+  await button(page, 'Browse game').click();
+  await expect(button(page, 'Cancel')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(button(page, 'Cancel')).toHaveCount(0);
+});

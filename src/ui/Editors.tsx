@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -37,6 +37,7 @@ import { colors, ui, useTheme } from './theme';
 import { wallpapers } from './wallpapers';
 import { gameColour } from '../domain/game-colours';
 import { captureMarkIDs, setCaptureMarks } from '../domain/passport';
+const openSheets: object[] = [];
 export function EditorSheet({
   title,
   children,
@@ -49,6 +50,19 @@ export function EditorSheet({
   const { width } = useWindowDimensions(),
     state = useCollection(),
     phone = width < 700;
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    // Only the topmost sheet answers Escape.
+    const token = {};
+    openSheets.push(token);
+    const onKey = (e: KeyboardEvent) =>
+      e.key === 'Escape' && openSheets.at(-1) === token && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      openSheets.splice(openSheets.indexOf(token), 1);
+    };
+  }, [onClose]);
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
