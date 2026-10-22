@@ -73,6 +73,19 @@ test('create empty collection, add and edit Pokémon, then recover the earlier v
   await page
     .getByRole('textbox', { name: 'Nickname', exact: true })
     .fill('Atlas');
+  const level = page.getByRole('textbox', { name: 'Level', exact: true });
+  await expect(level).toHaveValue('5');
+  await button(page, 'Increase Level').click();
+  await expect(level).toHaveValue('6');
+  await level.fill('250');
+  await expect(level).toHaveValue('100');
+  await expect(button(page, 'Increase Level')).toBeDisabled();
+  await level.fill('42');
+  await button(page, 'Met level unknown').click();
+  const met = page.getByRole('textbox', { name: 'Met level', exact: true });
+  await expect(met).toHaveValue('42');
+  await button(page, 'Decrease Met level').click();
+  await expect(met).toHaveValue('41');
   await button(page, 'Add to box').click();
   await expect(button(page, 'Select Atlas')).toBeVisible();
   await button(page, 'Pokémon actions').click();

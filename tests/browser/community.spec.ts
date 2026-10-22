@@ -91,6 +91,10 @@ test('Journey memories validate dates and retain photos, notes and identity afte
   await page
     .getByRole('textbox', { name: 'Title', exact: true })
     .fill('Battle Maison trip');
+  await expect(
+    page.getByRole('textbox', { name: 'Date (YYYY-MM-DD)', exact: true }),
+  ).toHaveCount(0);
+  await button(page, 'Date known').click();
   await page
     .getByRole('textbox', { name: 'Date (YYYY-MM-DD)', exact: true })
     .fill('2025-02-29');

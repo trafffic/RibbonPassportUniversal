@@ -15,7 +15,13 @@ import {
 import type { Honor, Memory, MoveNote, Pokemon } from '../domain/model';
 import { choosePhoto } from '../backup/photos';
 import { useTheme } from './theme';
-import { Button, PixelText, Panel, GameLabel } from './primitives';
+import {
+  Button,
+  DateKnownField,
+  PixelText,
+  Panel,
+  GameLabel,
+} from './primitives';
 import { ChoiceField, Field, EditorSheet } from './Editors';
 import { PageHeading } from './Community';
 export function Notebook({
@@ -247,8 +253,8 @@ export function Notebook({
             onChange={(game) => update({ game })}
           />
           {'date' in draft && (
-            <Field
-              label="Date (YYYY-MM-DD)"
+            <DateKnownField
+              key={draft.id}
               value={draft.date}
               onChange={(date) => update({ date })}
             />
