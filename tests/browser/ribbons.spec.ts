@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { backups, button, importText, passportTab } from './helpers';
+import { backups, button, importText, passportTab, demo } from './helpers';
 const passport = '/passport/sample-collection-v1-pokemon-4';
 const unknownGame = JSON.stringify({
   format: 'ribbon-passport',
@@ -29,7 +29,7 @@ const unknownGame = JSON.stringify({
 test('ribbon page size cycles 12, 24, 6 like the iPhone app and persists after reload', async ({
   page,
 }) => {
-  await page.goto(passport);
+  await demo(page, passport);
   await passportTab(page, 'Ribbons').click();
   await expect(button(page, '12 ribbons per page. Change to 24')).toBeVisible();
   await button(page, '12 ribbons per page. Change to 24').click();

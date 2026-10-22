@@ -83,8 +83,12 @@ test('page size persists through the web preference store and survives storage f
     getItem: (k: string) => data.get(k) ?? null,
     setItem: (k: string, v: string) => void data.set(k, v),
   };
-  const { loadPageSize, savePageSize } =
-    await import('../src/state/pagePreference.web');
+  const { loadPreference, savePreference } =
+    await import('../src/state/preference.web');
+  const loadPageSize = async () =>
+      validPageSize(Number(await loadPreference('ribbons.pageSize'))),
+    savePageSize = (size: number) =>
+      savePreference('ribbons.pageSize', String(size));
   assert.equal(await loadPageSize(), 12);
   await savePageSize(24);
   assert.equal(await loadPageSize(), 24);

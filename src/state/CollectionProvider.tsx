@@ -18,7 +18,7 @@ import {
   type PokemonDetails,
 } from '../domain/organisation';
 import { changeRibbon, undoChange, type UndoToken } from '../domain/collection';
-import { createSample } from '../domain/sample';
+import { applyDemo } from '../domain/sample';
 import {
   captureRecovery,
   restoreEntry,
@@ -55,6 +55,7 @@ interface State {
   ): Promise<boolean>;
   addBox(name: string): Promise<boolean>;
   startEmpty(): Promise<boolean>;
+  tryDemo(): Promise<boolean>;
   updateBox(
     id: string,
     details: Pick<Box, 'name' | 'wallpaper'>,
@@ -90,7 +91,12 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
       try {
         let value = await collectionStore.load();
         if (!value) {
-          value = createSample();
+          value = emptyCollection(
+            Crypto.randomUUID(),
+            Crypto.randomUUID(),
+            Crypto.randomUUID(),
+            new Date().toISOString(),
+          );
           await collectionStore.commit(value, null);
         }
         if (active) {
@@ -260,6 +266,12 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
         'Empty collection created. Previous collection archived locally.',
         (before) => setUndo(before),
         'imported',
+      ),
+    tryDemo: () =>
+      commit(
+        (c) => applyDemo(c, context(), () => Crypto.randomUUID()),
+        'Demo Pokémon ready. You can undo this change.',
+        (before) => setUndo(before),
       ),
     updateBox: (id, details) =>
       commit(

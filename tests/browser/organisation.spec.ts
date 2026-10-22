@@ -7,12 +7,13 @@ import {
   download,
   importText,
   offline,
+  demo,
 } from './helpers';
 test('box menus rename, wallpaper, move/swap, party and undo persist correctly', async ({
   page,
   context,
 }, info) => {
-  await page.goto('/');
+  await demo(page);
   await options(page, 'New box');
   await expect(button(page, 'Box 02')).toBeVisible();
   await button(page, 'Box options').click();
@@ -58,7 +59,7 @@ test('box menus rename, wallpaper, move/swap, party and undo persist correctly',
 test('create empty collection, add and edit Pokémon, then recover the earlier version', async ({
   page,
 }) => {
-  await page.goto('/');
+  await demo(page);
   await options(page, 'Start a new collection');
   await button(page, 'Create empty collection').click();
   await expect(button(page, 'Select Sparky')).toHaveCount(0);

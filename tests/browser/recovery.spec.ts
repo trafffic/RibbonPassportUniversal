@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { button, mainTab } from './helpers';
+import { button, mainTab, demo } from './helpers';
 const openHistory = async (page: import('@playwright/test').Page) => {
   await mainTab(page, 'Settings').click();
   await button(page, 'Recovery history').click();
@@ -7,7 +7,7 @@ const openHistory = async (page: import('@playwright/test').Page) => {
 test('edit a Pokémon, review its saved version and restore it', async ({
   page,
 }) => {
-  await page.goto('/');
+  await demo(page);
   await openHistory(page);
   await expect(page.getByText('No saved versions yet').first()).toBeVisible();
   await mainTab(page, 'Ribbons').click();
@@ -33,7 +33,7 @@ test('edit a Pokémon, review its saved version and restore it', async ({
 test('a deleted Pokémon appears under Deleted and returns to its original slot', async ({
   page,
 }) => {
-  await page.goto('/');
+  await demo(page);
   await button(page, 'Select Sparky').click();
   await button(page, 'Pokémon actions').click();
   await button(page, 'Delete').click();

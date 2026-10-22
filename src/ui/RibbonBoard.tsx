@@ -21,12 +21,13 @@ import {
 import { assignGame } from '../domain/collection';
 import {
   nextPageSize,
+  validPageSize,
   ribbonView,
   type RibbonCategory,
 } from '../domain/ribbon-view';
 import type { Pokemon } from '../domain/model';
 import { useCollection } from '../state/CollectionProvider';
-import { loadPageSize, savePageSize } from '../state/pagePreference';
+import { loadPreference, savePreference } from '../state/preference';
 import { useTheme } from './theme';
 import { Art, Button, GameLabel, Panel, PixelText } from './primitives';
 import { EditorSheet, ChoiceField } from './Editors';
@@ -58,7 +59,9 @@ export function RibbonBoard({
     [originals, setOriginals] = useState(false);
   useEffect(() => {
     let live = true;
-    loadPageSize().then((value) => live && setSize(value));
+    loadPreference('ribbons.pageSize').then(
+      (value) => live && setSize(validPageSize(Number(value))),
+    );
     return () => {
       live = false;
     };
@@ -161,7 +164,7 @@ export function RibbonBoard({
           onPress={() => {
             const next = nextPageSize(size);
             setSize(next);
-            savePageSize(next);
+            savePreference('ribbons.pageSize', String(next));
             setPage(0);
           }}
           label={`${size} ribbons per page. Change to ${nextPageSize(size)}`}

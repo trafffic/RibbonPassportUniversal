@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -11,9 +11,12 @@ import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../state/CollectionProvider';
 import { displayName, displayedAwards, gameName } from '../domain/catalog';
-import { createBox } from '../domain/organisation';
+import { createBox, ribbonMastersGuide } from '../domain/organisation';
 import { deletePokemon } from '../domain/passport';
-import { Art, Button, PixelText, Sprite } from './primitives';
+import { exportSource } from '../backup/codec';
+import { saveBackup } from '../backup/files';
+import { loadPreference, savePreference } from '../state/preference';
+import { Art, Button, Panel, PixelText, Sprite } from './primitives';
 import { BoxEditor, EditorSheet, PokemonEditor } from './Editors';
 import { BackupPanel } from './BackupPanel';
 import { ExportPokemon } from './ExportPokemon';
@@ -45,7 +48,21 @@ export function PCBox({
     [moving, setMoving] = useState(''),
     [party, setParty] = useState(false),
     [search, setSearch] = useState(''),
-    [finding, setFinding] = useState(false);
+    [finding, setFinding] = useState(false),
+    [exportError, setExportError] = useState('');
+  useEffect(() => {
+    let live = true;
+    loadPreference(`pc.${kind}.partyVisible`).then(
+      (value) => live && setParty(value === '1'),
+    );
+    return () => {
+      live = false;
+    };
+  }, [kind]);
+  const toggleParty = () => {
+    setParty(!party);
+    savePreference(`pc.${kind}.partyVisible`, party ? '0' : '1');
+  };
   const records = c.records.filter((r) =>
       kind === 'showdown' ? !!r.pokemon.showdownSet : !r.pokemon.showdownSet,
     ),
@@ -83,6 +100,23 @@ export function PCBox({
         router.replace({ pathname: '/passport/[id]', params: { id } });
     }
   };
+  const startAdd = async () => {
+    if (!boxes.length && !(await addBox())) return;
+    setSheet('add');
+  };
+  const hasDemo = c.records.some((r) => r.pokemon.source === 'demo'),
+    ribbonRecords = c.records.filter((r) => !r.pokemon.showdownSet);
+  const exportRibbonMasters = async () => {
+    setSheet('');
+    try {
+      await saveBackup(
+        exportSource(ribbonMastersGuide(c)),
+        'RibbonBackup-RibbonMasters.json',
+      );
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : String(e));
+    }
+  };
   return (
     <View style={{ gap: 16 }}>
       {!compact && (
@@ -105,6 +139,49 @@ export function PCBox({
             <PixelText style={{ fontSize: 14 }}>··· Options</PixelText>
           </Pressable>
         </View>
+      )}
+      {!compact && !records.length && (
+        <Panel>
+          <PixelText accessibilityRole="header" style={{ fontSize: 22 }}>
+            {kind === 'ribbon'
+              ? 'Start your ribbon journey'
+              : 'Build your first team'}
+          </PixelText>
+          {kind === 'ribbon' ? (
+            <>
+              <Button onPress={() => setSheet('Backups')}>
+                Import ribbons.guide backup
+              </Button>
+              <Button
+                disabled={state.busy}
+                primary
+                onPress={() => state.tryDemo()}
+              >
+                Try demo
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onPress={() => router.push('/import-showdown')}>
+                Import Showdown team
+              </Button>
+              <Button onPress={() => router.push('/library')}>
+                Browse community teams
+              </Button>
+            </>
+          )}
+          <Button disabled={state.busy} onPress={startAdd}>
+            Add Pokémon
+          </Button>
+        </Panel>
+      )}
+      {!!exportError && (
+        <PixelText
+          accessibilityRole="alert"
+          style={{ color: colors.warningInk }}
+        >
+          {exportError}
+        </PixelText>
       )}
       <View style={ui.between}>
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
@@ -227,7 +304,7 @@ export function PCBox({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Party"
-                onPress={() => setParty(!party)}
+                onPress={toggleParty}
                 style={{ minHeight: 32, justifyContent: 'center' }}
               >
                 <PixelText
@@ -466,6 +543,7 @@ export function PCBox({
         'Pokémon actions',
         'All boxes',
         'Delete Pokémon',
+        'Refresh demo',
       ].includes(sheet) && (
         <EditorSheet title={sheet} onClose={() => setSheet('')}>
           {sheet === 'Options' ? (
@@ -498,17 +576,31 @@ export function PCBox({
                   </Button>
                 </>
               )}
-              <Button
-                onPress={async () => {
-                  if (!boxes.length && !(await addBox())) return;
-                  setSheet('add');
-                }}
-              >
-                Add Pokémon
-              </Button>
+              <Button onPress={startAdd}>Add Pokémon</Button>
               <Button onPress={() => setSheet('Backups')}>
                 Import / export
               </Button>
+              {kind === 'ribbon' && (
+                <>
+                  <Button
+                    disabled={!ribbonRecords.length}
+                    onPress={exportRibbonMasters}
+                  >
+                    Export Ribbon Masters
+                  </Button>
+                  <Button
+                    onPress={() => {
+                      if (hasDemo) setSheet('Refresh demo');
+                      else {
+                        setSheet('');
+                        state.tryDemo();
+                      }
+                    }}
+                  >
+                    {hasDemo ? 'Refresh demo' : 'Try demo'}
+                  </Button>
+                </>
+              )}
               <Button
                 onPress={async () => {
                   await addBox();
@@ -557,6 +649,22 @@ export function PCBox({
                 }}
               >{`${b.name} · ${b.slots.filter(Boolean).length}/30`}</Button>
             ))
+          ) : sheet === 'Refresh demo' ? (
+            <>
+              <PixelText>
+                Replace the demo Pokémon with a fresh copy? Their notes and
+                journal are kept. You can undo this change.
+              </PixelText>
+              <Button
+                disabled={state.busy}
+                primary
+                onPress={async () => {
+                  if (await state.tryDemo()) setSheet('');
+                }}
+              >
+                Refresh demo Pokémon
+              </Button>
+            </>
           ) : sheet === 'Delete Pokémon' ? (
             <>
               <PixelText>
@@ -618,6 +726,7 @@ export function PCBox({
                     ))
                   ) {
                     setParty(true);
+                    savePreference(`pc.${kind}.partyVisible`, '1');
                     setSheet('');
                   }
                 }}
