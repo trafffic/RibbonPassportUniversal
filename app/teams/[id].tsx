@@ -7,7 +7,7 @@ export default function Team() {
     id: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <PersonalTeam key={id} id={id} />
     </Shell>
   );

@@ -8,7 +8,7 @@ export default function Notes() {
     section: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <Notebook key={id + section} id={id} initialSection={section} />
     </Shell>
   );

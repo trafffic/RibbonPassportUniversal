@@ -4,6 +4,7 @@ import { deletePokemon } from '../domain/passport';
 import { exportSource } from '../backup/codec';
 import { exportShowdown } from '../domain/showdown';
 import { saveBackup } from '../backup/files';
+import { canCopy, copyText } from '../backup/clipboard';
 import { Button, PixelText } from './primitives';
 const targets = {
   showdown: {
@@ -73,6 +74,21 @@ export function ExportPokemon({ id }: { id: string }) {
       >
         {targets[target].save}
       </Button>
+      {canCopy && (
+        <Button
+          disabled={!!prepared.error}
+          onPress={async () => {
+            try {
+              await copyText(prepared.text);
+              setMessage('Copied to the clipboard.');
+            } catch (e) {
+              setMessage('Could not copy. Use the file instead.');
+            }
+          }}
+        >
+          Copy to clipboard
+        </Button>
+      )}
       {!!(prepared.error || message) && (
         <PixelText accessibilityRole="alert">
           {prepared.error || message}

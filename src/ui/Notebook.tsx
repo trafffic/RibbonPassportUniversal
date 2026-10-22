@@ -1,3 +1,4 @@
+import { Missing } from './Missing';
 import React, { useState } from 'react';
 import { Image, View, TextInput } from 'react-native';
 import * as Crypto from 'expo-crypto';
@@ -39,7 +40,7 @@ export function Notebook({
   const [section, setSection] = useState(initialSection),
     [draft, setDraft] = useState<Honor | Memory | MoveNote | null>(null),
     [photoError, setPhotoError] = useState('');
-  if (!p || !record) return <PixelText>Pokémon not found.</PixelText>;
+  if (!p || !record) return <Missing message="This Pokémon is no longer in your collection." />;
   const list =
       section === 'Milestones'
         ? (p.honors ?? [])
@@ -276,7 +277,7 @@ export function Notebook({
               primary={draft.homeChecked}
               onPress={() => update({ homeChecked: !draft.homeChecked })}
             >
-              {draft.homeChecked ? 'HOME checked ✓' : 'Not checked in HOME'}
+              {draft.homeChecked ? 'Checked in Pokémon HOME' : 'Not checked in Pokémon HOME'}
             </Button>
           )}
           {'earned' in draft && (

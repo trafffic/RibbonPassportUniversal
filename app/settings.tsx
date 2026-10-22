@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Linking, View, TextInput } from 'react-native';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../src/state/CollectionProvider';
 import { updateMetadata } from '../src/domain/passport';
@@ -52,7 +53,7 @@ export default function Settings() {
     );
   });
   return (
-    <Shell>
+    <Shell narrow>
       <PixelText accessibilityRole="header" style={{ fontSize: 25 }}>
         SETTINGS
       </PixelText>
@@ -81,8 +82,7 @@ export default function Settings() {
       <Button onPress={() => router.push('/recovery')}>Recovery history</Button>
       <Button onPress={state.reload}>Reload saved collection</Button>
       <PixelText style={{ fontSize: 13, color: colors.muted }}>
-        Your collection stays on this device. Reimport your ribbons.guide backup
-        after changes. Showdown teams are preserved when backups are reimported.
+        Your collection lives only on this device. Export a backup regularly.
       </PixelText>
       <PixelText style={ui.heading}>Rarity</PixelText>
       <Button onPress={() => setSheet('Estimated rarity guide')}>
@@ -90,8 +90,7 @@ export default function Settings() {
       </Button>
       <PixelText style={{ fontSize: 13, color: colors.muted }}>
         Rankings are editorial estimates of availability and acquisition
-        challenge, not measured ownership percentages. Top-three displays show
-        ribbons; full boards and totals include marks.
+        challenge, not measured ownership percentages.
       </PixelText>
       <PixelText style={ui.heading}>Credits</PixelText>
       <Button onPress={() => setSheet('Sources & credits')}>
@@ -108,6 +107,9 @@ export default function Settings() {
       <PixelText style={{ fontSize: 13, color: colors.muted }}>
         Unofficial fan app. Pokémon artwork © its respective owners. Pixelify
         Sans is bundled under SIL OFL 1.1.
+      </PixelText>
+      <PixelText style={{ fontSize: 13, color: colors.muted }}>
+        Ribbon Passport {Constants.expoConfig?.version ?? ''}
       </PixelText>
       {!!sheet && (
         <EditorSheet title={sheet} onClose={() => setSheet('')}>

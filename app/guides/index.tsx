@@ -8,7 +8,7 @@ export default function Guides() {
     game: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <FieldGuideLibrary award={award} initialGame={game} />
     </Shell>
   );

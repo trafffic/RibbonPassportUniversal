@@ -51,15 +51,73 @@ test('Set game assigns an unknown earning game from the same generation and can 
   await importText(page, unknownGame);
   await page.goto('/passport/p1');
   await passportTab(page, 'Ribbons').click();
-  await button(page, 'Owned · 1 ▴').click();
+  await button(page, 'Owned (1)').click();
   await button(page, 'Details for Effort Ribbon').click();
   await expect(page.getByText('Gen 8 · Game not set').first()).toBeVisible();
   await button(page, 'Set game Brilliant Diamond').click();
   await expect(
-    page.getByText('Earning game saved. Saved on this device.').first(),
+    page.getByText('Earning game saved.').first(),
   ).toBeVisible();
-  await button(page, 'Owned · 1 ▴').click();
+  await button(page, 'Owned (1)').click();
   await button(page, 'Details for Effort Ribbon').click();
   await expect(page.getByText('Earned in: Brilliant Diamond')).toBeVisible();
   await expect(button(page, 'Set game Brilliant Diamond')).toHaveCount(0);
+});
+test('a ribbon tile records and removes in one tap, and undo restores it', async ({
+  page,
+}) => {
+  await demo(page, passport);
+  await passportTab(page, 'Ribbons').click();
+  const quick = page
+    .getByRole('button', { name: /^Record .+ in .+/ })
+    .filter({ visible: true })
+    .first();
+  await expect(quick).toBeVisible();
+  await quick.click();
+  await expect(
+    page.getByText('Ribbon recorded.', { exact: true }).first(),
+  ).toBeVisible();
+  await expect(button(page, 'Owned (11)')).toBeVisible();
+  await button(page, 'Undo last change').click();
+  await expect(
+    page.getByText('Change undone.', { exact: true }).first(),
+  ).toBeVisible();
+  await expect(button(page, 'Owned (10)')).toBeVisible();
+});
+test('species without bundled art load their sprite, falling back through the sources', async ({
+  page,
+}) => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const tried: string[] = [];
+  await page.route('https://raw.githubusercontent.com/**', (route) => {
+    tried.push(route.request().url());
+    return route.fulfill({ status: 404, body: 'missing' });
+  });
+  await page.route('https://play.pokemonshowdown.com/**', (route) => {
+    tried.push(route.request().url());
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      headers: { 'access-control-allow-origin': '*' },
+      body: png,
+    });
+  });
+  await page.goto('/');
+  await backups(page);
+  await importText(page, unknownGame.replace('metagross', 'bulbasaur'));
+  await page.goto('/passport/p1');
+  await expect(page.getByRole('img', { name: 'Bulbasaur' }).first()).toBeVisible();
+  await expect.poll(() => tried[0]).toContain('pokesprite');
+  await expect.poll(() => tried.at(-1)).toContain('pokemonshowdown.com');
+});
+test('Escape closes the topmost sheet', async ({ page }) => {
+  await demo(page, passport);
+  await passportTab(page, 'Ribbons').click();
+  await button(page, 'Browse game').click();
+  await expect(button(page, 'Cancel')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(button(page, 'Cancel')).toHaveCount(0);
 });

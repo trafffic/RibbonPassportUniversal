@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { importBackup, exportSource } from '../src/backup/codec';
 import { assignGame } from '../src/domain/collection';
 import { assignableGames } from '../src/domain/rules';
-import { nextPageSize, validPageSize } from '../src/domain/ribbon-view';
+import { nextPageSize, validPageSize, tileStatus } from '../src/domain/ribbon-view';
 import { restoreCollection } from '../src/domain/organisation';
 
 const backup = (extra: object = {}) =>
@@ -103,4 +103,19 @@ test('page size persists through the web preference store and survives storage f
   assert.equal(await loadPageSize(), 12);
   await savePageSize(6);
   delete (globalThis as any).localStorage;
+});
+
+test('tile status reports owned, last chance and the quick action', () => {
+  const p = importBackup(backup(), 'i', 'r').records[0]!.pokemon;
+  const owned = tileStatus(p, 'effort-ribbon', 'bd', { owned: true, lastChance: false });
+  assert.equal(owned.label, '✓ Owned');
+  assert.equal(owned.action, 'remove');
+  const last = tileStatus(p, 'alert-ribbon', 'bd', { owned: false, lastChance: true });
+  assert.equal(last.label, 'Last chance');
+  assert.equal(last.tone, 'last');
+  const mini = tileStatus(p, 'mini-mark', 'bd', { owned: false, lastChance: false });
+  assert.equal(mini.optional, true);
+  assert.equal(mini.label, 'Optional');
+  const far = tileStatus(p, 'alert-ribbon', 'emerald', { owned: false, lastChance: false });
+  assert.notEqual(far.action, 'remove');
 });

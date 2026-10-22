@@ -1,3 +1,4 @@
+import { Missing } from './Missing';
 import React, { useState } from 'react';
 import { View, TextInput } from 'react-native';
 import * as Crypto from 'expo-crypto';
@@ -34,7 +35,14 @@ import {
 import type { Pokemon, ShowdownSet, Team, TeamBuild } from '../domain/model';
 import { saveBackup } from '../backup/files';
 import { useTheme } from './theme';
-import { Button, PixelText, Panel, Sprite, GameLabel } from './primitives';
+import {
+  Button,
+  PixelText,
+  Panel,
+  Sprite,
+  GameLabel,
+  HeldItem,
+} from './primitives';
 import { ChoiceField, EditorSheet, Field } from './Editors';
 import { CommunityLink, PageHeading } from './Community';
 function useRun() {
@@ -196,7 +204,7 @@ export function PersonalTeam({ id }: { id: string }) {
     [edit, setEdit] = useState(false),
     [deleting, setDeleting] = useState(false),
     [error, setError] = useState('');
-  if (!team) return <PixelText>Team not found.</PixelText>;
+  if (!team) return <Missing message="This team is no longer in your collection." />;
   const members = team.memberIDs.flatMap(
       (id) => state.collection!.records.find((r) => r.id === id)?.pokemon ?? [],
     ),
@@ -247,9 +255,10 @@ export function PersonalTeam({ id }: { id: string }) {
           <GameLabel game={p.currentgame} />
           {p.showdownSet && (
             <>
-              <PixelText>
-                {p.showdownSet.item} · {p.showdownSet.ability}
-              </PixelText>
+              <View style={ui.row}>
+                <HeldItem item={p.showdownSet.item} size={16} />
+                <PixelText>· {p.showdownSet.ability}</PixelText>
+              </View>
               <PixelText>{p.showdownSet.moves.join(' / ')}</PixelText>
             </>
           )}
@@ -337,9 +346,10 @@ function TeamNotebook({ team }: { team: Team }) {
               {`${differing} ${differing === 1 ? 'build differs' : 'builds differ'} from current team`}
             </PixelText>
             {v.members.map((m) => (
-              <PixelText key={m.id}>
-                {m.nickname || m.species} · {m.build.item}
-              </PixelText>
+              <View key={m.id} style={ui.row}>
+                <PixelText>{m.nickname || m.species} ·</PixelText>
+                <HeldItem item={m.build.item} />
+              </View>
             ))}
             <View style={ui.row}>
               <Button
@@ -452,7 +462,7 @@ export function Build({ id }: { id: string }) {
     r = state.collection?.records.find((r) => r.id === id),
     [editing, setEditing] = useState(false),
     [error, setError] = useState('');
-  if (!r) return <PixelText>Pokémon not found.</PixelText>;
+  if (!r) return <Missing message="This Pokémon is no longer in your collection." />;
   const p = r.pokemon,
     b = p.showdownSet;
   if (!b)
@@ -478,7 +488,11 @@ export function Build({ id }: { id: string }) {
       ].map(([key, val]) => (
         <Panel key={key}>
           <PixelText style={ui.label}>{key}</PixelText>
-          <PixelText>{val || 'Not set'}</PixelText>
+          {key === 'Item' ? (
+            <HeldItem item={val} size={18} />
+          ) : (
+            <PixelText>{val || 'Not set'}</PixelText>
+          )}
         </Panel>
       ))}
       <PixelText style={ui.heading}>Moves</PixelText>

@@ -102,7 +102,7 @@ export function transferCheck(from: string, p: Pokemon): TransferCheck {
   if (!p.ribbons.includes('footprint-ribbon') && p.metLevel === undefined && p.currentlevel > 70 && p.origingame !== 'go' &&
     !['3', '4', '3DSVC'].includes(group(p.currentgame || p.origingame) ?? '') && compatibleGames(p).some(game =>
       generation(game) === check.generation && groups.has(group(game) ?? '') && unavailableReason('footprint-ribbon', game, p, false, false) === 'Set the met level to check the 30-level requirement')) {
-    check.warnings.push('Set Met level in Edit Pokémon to check whether Footprint can still be earned.');
+    check.warnings.push('Enter its met level below to check whether Footprint Ribbon can still be earned.');
   }
   check.isSafe = check.nextGeneration !== undefined && !check.lastChance.length && !check.warnings.length;
   return check;

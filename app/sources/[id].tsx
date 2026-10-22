@@ -7,7 +7,7 @@ export default function Source() {
     id: string;
   }>();
   return (
-    <Shell>
+    <Shell narrow>
       <SourceDetail key={id} id={id} />
     </Shell>
   );
