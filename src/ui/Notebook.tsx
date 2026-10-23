@@ -39,7 +39,9 @@ export function Notebook({
     p = record?.pokemon;
   const [section, setSection] = useState(initialSection),
     [draft, setDraft] = useState<Honor | Memory | MoveNote | null>(null),
-    [photoError, setPhotoError] = useState('');
+    [photoError, setPhotoError] = useState(''),
+    // Saving waits for a chosen photo to finish reading, or it would be dropped.
+    [photoBusy, setPhotoBusy] = useState(false);
   if (!p || !record) return <Missing message="This Pokémon is no longer in your collection." />;
   const list =
       section === 'Milestones'
@@ -291,12 +293,16 @@ export function Notebook({
           {'title' in draft && (
             <>
               <Button
+                disabled={photoBusy}
                 onPress={async () => {
+                  setPhotoBusy(true);
                   try {
                     const photo = await choosePhoto();
                     if (photo) update({ photo });
                   } catch (e) {
                     setPhotoError(String(e));
+                  } finally {
+                    setPhotoBusy(false);
                   }
                 }}
               >
@@ -323,6 +329,7 @@ export function Notebook({
             primary
             disabled={
               state.busy ||
+              photoBusy ||
               !('title' in draft ? draft.title : draft.move).trim()
             }
             onPress={() => save()}

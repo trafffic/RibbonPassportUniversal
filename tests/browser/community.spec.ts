@@ -120,6 +120,7 @@ test('Journey memories validate dates and retain photos, notes and identity afte
   const chooser = page.waitForEvent('filechooser');
   await button(page, 'Choose photo').click();
   await (await chooser).setFiles('assets/art/sprite-regular_pikachu.png');
+  await expect(button(page, 'Remove photo')).toBeVisible();
   await button(page, 'Save memory').click();
   await expect(button(page, 'Battle Maison trip')).toBeVisible();
   await offline(page);

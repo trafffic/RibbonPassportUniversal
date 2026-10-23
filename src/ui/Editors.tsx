@@ -327,7 +327,7 @@ export function Field({
 }) {
   const { colors, ui, dark } = useTheme();
   return (
-    <View style={{ gap: 7, flexGrow: 1, flexBasis: 180 }}>
+    <View style={{ gap: 7 }}>
       <PixelText style={ui.label}>{label.toUpperCase()}</PixelText>
       <TextInput
         accessibilityLabel={label}
@@ -602,15 +602,13 @@ export function PokemonEditor({
         value={draft.nickname}
         onChange={(v) => update('nickname', v)}
       />
-      <View style={ui.row}>
-        <NumberStepper
-          label="Level"
-          value={level}
-          min={1}
-          max={100}
-          onChange={setLevel}
-        />
-      </View>
+      <NumberStepper
+        label="Level"
+        value={level}
+        min={1}
+        max={100}
+        onChange={setLevel}
+      />
       <Toggle
         label="Shiny"
         value={draft.shiny}

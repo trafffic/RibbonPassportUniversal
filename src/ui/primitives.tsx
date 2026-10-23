@@ -334,7 +334,7 @@ export function NumberStepper({
   React.useEffect(() => setText(String(value)), [value]);
   const step = (d: number) => onChange(clampInt(value + d, min, max));
   return (
-    <View style={[ui.between, { gap: 8, flexGrow: 1, flexBasis: 220 }]}>
+    <View style={[ui.between, { gap: 8 }]}>
       <PixelText style={{ fontSize: 15, flex: 1 }}>{label}</PixelText>
       <Button
         label={`Decrease ${label}`}

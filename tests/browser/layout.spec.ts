@@ -24,6 +24,7 @@ test('Competitive opens in the studio on wide screens only', async ({
     .getByRole('textbox', { name: 'Showdown export' })
     .fill('Garchomp @ Choice Scarf\nAbility: Rough Skin\nLevel: 50\n- Earthquake');
   await button(page, 'Import team').click();
+  await expect(page.getByText('Default team ✓')).toBeVisible();
   await page.goto('/competitive');
   const preview = page.getByTestId('studio');
   const wide = (page.viewportSize()?.width ?? 0) >= 1100;
