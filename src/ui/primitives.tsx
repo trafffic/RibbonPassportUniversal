@@ -274,7 +274,7 @@ export function Sprite({
           style={{ width: '100%', height: '100%' }}
         />
       ) : (
-        <RemoteSprite pokemon={pokemon} />
+        <RemoteSprite key={original} pokemon={pokemon} />
       )}
     </View>
   );
