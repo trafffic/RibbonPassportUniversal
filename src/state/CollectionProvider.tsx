@@ -15,6 +15,7 @@ import {
   movePokemon,
   restoreCollection,
   emptyCollection,
+  ensureDefaultBoxes,
   type PokemonDetails,
 } from '../domain/organisation';
 import { changeRibbon, undoChange, type UndoToken } from '../domain/collection';
@@ -105,9 +106,16 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
           if (active && pending) {
             setConflict(pending);
             setError(pending.message);
+          } else if (active) {
+            const expanded = ensureDefaultBoxes(value, context());
+            if (expanded !== value) {
+              await collectionStore.commit(expanded, value.revision);
+              if (active) accept(expanded);
+            }
           }
         }
       } catch (e) {
+        if (active && e instanceof StorageConflict) setConflict(e);
         if (active)
           setError(
             e instanceof Error ? e.message : 'Could not open local storage.',

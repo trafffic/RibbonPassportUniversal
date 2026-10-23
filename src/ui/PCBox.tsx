@@ -31,15 +31,20 @@ import { BackupPanel } from './BackupPanel';
 import { ExportPokemon } from './ExportPokemon';
 import { pcMetrics as m, wallpapers } from './wallpapers';
 import { useTheme } from './theme';
+import { TerminalGlyph } from './TerminalGlyph';
 import {
   headerScale as scaleFor,
   hitTest,
   pageIndex,
   pcFrames,
+  pcHeader,
   type Rect,
 } from './pc-drag';
 type Latest = {
   boardWidth: number;
+  boardHeight: number;
+  area: { width: number; height: number };
+  classic: boolean;
   party: boolean;
   box: { id: string; slots: (string | null)[] };
   boxes: { id: string }[];
@@ -52,13 +57,18 @@ const menuSheets = ['Options', 'Box options', 'Pokémon actions'];
 export function PCBox({
   kind = 'ribbon',
   compact = false,
+  classic = false,
+  followPassport = false,
 }: {
   kind?: 'ribbon' | 'showdown';
   compact?: boolean;
+  /** Prominent landscape storage and a horizontal party on desktop. */
+  classic?: boolean;
+  followPassport?: boolean;
 }) {
   const state = useCollection(),
     router = useRouter(),
-    { width } = useWindowDimensions(),
+    { width, height } = useWindowDimensions(),
     { colors, ui } = useTheme(),
     c = state.collection!;
   const boxes = c.boxes.filter((b) => (b.kind ?? 'ribbon') === kind),
@@ -74,21 +84,23 @@ export function PCBox({
     boxAnchor = useAnchor(),
     actionsAnchor = useAnchor();
   const [boardWidth, setBoardWidth] = useState(300),
+    [boardArea, setBoardArea] = useState({ width: 300, height: 300 }),
+    [boardHeight, setBoardHeight] = useState(300 * m.height / m.width),
     [sheet, setSheet] = useState(''),
     [moving, setMoving] = useState(''),
-    [party, setParty] = useState(false),
+    [party, setParty] = useState(classic),
     [search, setSearch] = useState(''),
     [finding, setFinding] = useState(false),
     [exportError, setExportError] = useState('');
   useEffect(() => {
     let live = true;
     loadPreference(`pc.${kind}.partyVisible`).then(
-      (value) => live && setParty(value === '1'),
+      (value) => live && setParty(value === null ? classic : value === '1'),
     );
     return () => {
       live = false;
     };
-  }, [kind]);
+  }, [kind, classic]);
   const [drag, setDrag] = useState<{
       pokemon: Pokemon;
       x: number;
@@ -99,9 +111,9 @@ export function PCBox({
     origin = useRef({ x: 0, y: 0 }),
     start = useRef({ moveX: 0, moveY: 0 }),
     partyRects = useRef<Rect[]>([]),
+    partyRefs = useRef<Array<React.ComponentRef<typeof View> | null>>([]),
     session = useRef<{ id: string; boxID: string } | null>(null),
     paged = useRef(false),
-    partyOrigin = useRef({ x: 0, y: 0 }),
     latest = useRef<Latest>(null!);
   const toggleParty = () => {
     setParty(!party);
@@ -113,13 +125,17 @@ export function PCBox({
     byID = new Map(records.map((r) => [r.id, r.pokemon]));
   const selected = records.find((r) => r.id === c.selectedID) ?? records[0],
     p = selected?.pokemon;
-  const wallpaper =
-    wallpapers.find((w) => w.id === box.wallpaper?.sunMoon) ?? wallpapers[0]!;
+  const wallpaper = wallpapers[Math.max(0, index) % wallpapers.length]!;
   const headerScale = scaleFor(boardWidth);
+  const header = pcHeader({ x: 0, y: 0, width: boardWidth, height: boardHeight });
+  const arrowSize = boardWidth >= 500 ? 24 : 16;
   const slotW = (boardWidth * m.gridWidth) / m.width / 6,
-    slotH = (boardWidth * m.gridHeight) / m.height / 5;
+    slotH = (boardHeight * m.gridHeight) / m.height / 5;
   latest.current = {
     boardWidth,
+    boardHeight,
+    area: boardArea,
+    classic,
     party,
     box,
     boxes,
@@ -137,21 +153,15 @@ export function PCBox({
   const frames = () => {
     const L = latest.current,
       art = {
-        x: L.party ? 48 : 0,
-        y: 0,
+        x: L.classic ? Math.max(0, (L.area.width - L.boardWidth) / 2) : L.party ? 48 : 0,
+        y: L.classic ? Math.max(0, (L.area.height - L.boardHeight) / 2) : 0,
         width: L.boardWidth,
-        height: (L.boardWidth * m.height) / m.width,
+        height: L.boardHeight,
       };
     return pcFrames(
       m,
       art,
-      L.party
-        ? partyRects.current.map((r) => ({
-            ...r,
-            x: r.x + partyOrigin.current.x,
-            y: r.y + partyOrigin.current.y,
-          }))
-        : [],
+      L.party ? partyRects.current : [],
     );
   };
   const responder = useRef(
@@ -163,6 +173,11 @@ export function PCBox({
         };
         rowRef.current?.measureInWindow((x, y) => {
           origin.current = { x, y };
+          // Fixed-size party slots can move when their parent resizes without
+          // firing onLayout. Measure their current positions for every drag.
+          partyRefs.current.forEach((ref, i) => ref?.measureInWindow((px, py, width, height) => {
+            partyRects.current[i] = { x: px - x, y: py - y, width, height };
+          }));
         });
         return false;
       },
@@ -274,7 +289,7 @@ export function PCBox({
       if (await state.move(moving, { boxID: box.id, slot })) setMoving('');
     } else if (id) {
       await state.select(id);
-      if (compact)
+      if (compact || followPassport)
         router.replace({ pathname: '/passport/[id]', params: { id } });
     }
   };
@@ -295,13 +310,66 @@ export function PCBox({
       setExportError(e instanceof Error ? e.message : String(e));
     }
   };
+  const partyRail = party && (
+    <View
+      style={{ width: classic ? '100%' : 43, flexDirection: classic ? 'row' : 'column', alignItems: classic ? 'center' : 'stretch', gap: classic ? 8 : 3, padding: classic ? 8 : 3, backgroundColor: classic ? colors.panel : undefined, borderWidth: classic ? 1 : 0, borderColor: colors.border }}
+    >
+      <PixelText style={{ fontSize: classic ? 12 : 10, color: colors.muted, marginRight: classic ? 'auto' : 0 }}>
+        {classic ? `YOUR PARTY · ${c.partyIDs.filter(id => byID.has(id)).length} / 6` : 'PARTY'}
+      </PixelText>
+      {Array.from({ length: 6 }, (_, i) => {
+        const id = c.partyIDs.filter((id) => byID.has(id))[i],
+          pokemon = id ? byID.get(id) : undefined;
+        return (
+          <Pressable
+            key={i}
+            ref={(ref) => { partyRefs.current[i] = ref; }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              moving
+                ? `Move to party slot ${i + 1}`
+                : pokemon
+                  ? `Select ${displayName(pokemon)} in party`
+                  : `Empty party slot ${i + 1}`
+            }
+            onPress={async () => {
+              if (moving) {
+                if (await state.move(moving, { partySlot: i }))
+                  setMoving('');
+              } else if (id) {
+                await state.select(id);
+                if (followPassport) router.replace({ pathname: '/passport/[id]', params: { id } });
+              }
+            }}
+            style={{
+              flex: classic ? undefined : 1,
+              width: classic ? (height < 850 ? 36 : 42) : undefined,
+              height: classic ? (height < 850 ? 36 : 42) : undefined,
+              opacity: drag && drag.pokemon.id === id ? 0.08 : 1,
+              backgroundColor: classic ? colors.board : colors.panel,
+              borderRadius: 3,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {pokemon && <Sprite pokemon={pokemon} size={classic ? (height < 850 ? 30 : 36) : 32} />}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
   return (
-    <View style={{ gap: 16 }}>
+    <View testID={classic ? 'classic-storage' : undefined} style={{ gap: classic ? 10 : 16, flex: classic ? 1 : undefined, minHeight: 0 }}>
       {!compact && (
         <View style={ui.between}>
-          <PixelText accessibilityRole="header" style={{ fontSize: 25 }}>
-            {kind === 'ribbon' ? 'RIBBON MASTERS' : 'COMPETITIVE'}
-          </PixelText>
+          <View style={{ gap: 5 }}>
+            {classic && <PixelText style={{ fontSize: 12, letterSpacing: 1.5, color: colors.muted }}>POKÉMON STORAGE · {box.slots.filter(Boolean).length} / 30</PixelText>}
+            <PixelText accessibilityRole="header" style={{ fontSize: classic ? 30 : 25 }}>
+              {classic ? 'Your collection' : kind === 'ribbon' ? 'RIBBON MASTERS' : 'COMPETITIVE'}
+            </PixelText>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {classic && records.length > 0 && <Button disabled={state.busy} onPress={startAdd}>+ Add Pokémon</Button>}
           <Pressable
             ref={optionsAnchor.ref}
             accessibilityRole="button"
@@ -317,6 +385,7 @@ export function PCBox({
           >
             <PixelText style={{ fontSize: 14 }}>··· Options</PixelText>
           </Pressable>
+          </View>
         </View>
       )}
       {!compact && !records.length && (
@@ -362,102 +431,63 @@ export function PCBox({
           {exportError}
         </PixelText>
       )}
-      <View style={ui.between}>
+      {!classic && <View style={ui.between}>
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
           POKÉMON STORAGE
         </PixelText>
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
           {box.slots.filter(Boolean).length} / 30
         </PixelText>
-      </View>
+      </View>}
       <View
         style={{
-          padding: 8,
+          padding: classic ? 0 : 8,
           borderRadius: 10,
-          borderWidth: 1,
+          borderWidth: classic ? 0 : 1,
           borderColor: colors.border,
-          backgroundColor: colors.board,
+          backgroundColor: classic ? 'transparent' : colors.board,
           gap: 10,
+          flex: classic ? 1 : undefined,
+          minHeight: 0,
         }}
       >
         <View
           ref={rowRef}
           {...responder.panHandlers}
-          style={{ flexDirection: 'row', gap: 5, alignItems: 'stretch' }}
+          style={{ flexDirection: classic ? 'column' : 'row', gap: classic ? 10 : 5, alignItems: 'stretch', flex: classic ? 1 : undefined, minHeight: 0 }}
         >
-          {party && (
-            <View
-              onLayout={(e) => {
-                partyOrigin.current = e.nativeEvent.layout;
-              }}
-              style={{ width: 43, gap: 3, padding: 3 }}
-            >
-              <PixelText style={{ fontSize: 10, color: colors.muted }}>
-                PARTY
-              </PixelText>
-              {Array.from({ length: 6 }, (_, i) => {
-                const id = c.partyIDs.filter((id) => byID.has(id))[i],
-                  pokemon = id ? byID.get(id) : undefined;
-                return (
-                  <Pressable
-                    key={i}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      moving
-                        ? `Move to party slot ${i + 1}`
-                        : pokemon
-                          ? `Select ${displayName(pokemon)} in party`
-                          : `Empty party slot ${i + 1}`
-                    }
-                    onPress={async () => {
-                      if (moving) {
-                        if (await state.move(moving, { partySlot: i }))
-                          setMoving('');
-                      } else if (id) await state.select(id);
-                    }}
-                    onLayout={(e) => {
-                      partyRects.current[i] = e.nativeEvent.layout;
-                    }}
-                    style={{
-                      flex: 1,
-                      opacity: drag && drag.pokemon.id === id ? 0.08 : 1,
-                      backgroundColor: colors.panel,
-                      borderRadius: 3,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {pokemon && <Sprite pokemon={pokemon} size={32} />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+          {!classic && partyRail}
+          <View
+            onLayout={classic ? (e) => setBoardArea({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height }) : undefined}
+            style={{ flex: 1, minHeight: 0, minWidth: 0, alignItems: classic ? 'center' : 'stretch', justifyContent: classic ? 'center' : undefined }}
+          >
           <View
             testID="pc-artwork"
             style={{
-              flex: 1,
               minWidth: 0,
               aspectRatio: m.width / m.height,
+              width: classic ? Math.max(1, Math.min(boardArea.width, boardArea.height * m.width / m.height)) : undefined,
+              flex: classic ? undefined : 1,
               overflow: 'hidden',
+              borderRadius: classic ? boardWidth * 8 / m.width : 0,
             }}
-            onLayout={(e) => setBoardWidth(e.nativeEvent.layout.width)}
+            onLayout={(e) => { setBoardWidth(e.nativeEvent.layout.width); setBoardHeight(e.nativeEvent.layout.height); }}
           >
             <Image
               source={wallpaper.source}
-              resizeMode="stretch"
+              accessibilityLabel={`Box background: ${wallpaper.name}`}
+              resizeMode="contain"
               style={{ position: 'absolute', width: '100%', height: '100%' }}
             />
             <View
               style={{
                 position: 'absolute',
-                left: '8.5%',
-                top: '1.8%',
-                width: '83%',
-                height: '15%',
+                left: header.x,
+                top: header.y,
+                width: header.width,
+                height: header.height,
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 2 * headerScale,
               }}
             >
               <Pressable
@@ -470,17 +500,13 @@ export function PCBox({
                   )
                 }
                 style={{
-                  width: 28 * headerScale,
+                  width: header.arrowWidth,
                   height: '100%',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <PixelText
-                  style={{ color: '#FFF', fontSize: 22 * headerScale }}
-                >
-                  ‹
-                </PixelText>
+                <TerminalGlyph kind="previous" color="#FFF" size={arrowSize} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -492,12 +518,12 @@ export function PCBox({
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={0.7}
-                  style={{ color: '#FFF', fontSize: 15 * headerScale }}
+                  style={{ color: '#FFF', fontSize: 15 * headerScale, textAlign: classic ? 'center' : undefined }}
                 >
                   {box.name.toUpperCase()}
                 </PixelText>
               </Pressable>
-              <Pressable
+              {!classic && <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Party"
                 onPress={toggleParty}
@@ -513,7 +539,7 @@ export function PCBox({
                 >
                   Party
                 </PixelText>
-              </Pressable>
+              </Pressable>}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Next box"
@@ -522,17 +548,13 @@ export function PCBox({
                   state.selectBox(boxes[(index + 1) % boxes.length]!.id)
                 }
                 style={{
-                  width: 28 * headerScale,
+                  width: header.arrowWidth,
                   height: '100%',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <PixelText
-                  style={{ color: '#FFF', fontSize: 22 * headerScale }}
-                >
-                  ›
-                </PixelText>
+                <TerminalGlyph kind="next" color="#FFF" size={arrowSize} />
               </Pressable>
             </View>
             <View
@@ -593,7 +615,8 @@ export function PCBox({
                     )}{' '}
                     {pokemon?.shiny && (
                       <View
-                        style={{ position: 'absolute', right: 1, bottom: 1 }}
+                        testID={`pc-shiny-${i + 1}`}
+                        style={{ position: 'absolute', right: 1, top: 1 }}
                       >
                         <Art
                           name="shiny-dark"
@@ -606,6 +629,8 @@ export function PCBox({
               })}
             </View>
           </View>
+          </View>
+          {classic && partyRail}
           {drag && (
             <View
               pointerEvents="none"
@@ -620,7 +645,7 @@ export function PCBox({
             </View>
           )}
         </View>
-        {!compact && p && (
+        {!compact && !classic && p && (
           <>
             <View
               style={{
@@ -704,7 +729,7 @@ export function PCBox({
             )}
           </>
         )}
-        <ScrollView horizontal contentContainerStyle={{ gap: 20 }}>
+        <ScrollView horizontal style={{ flexGrow: 0 }} contentContainerStyle={{ gap: classic ? 8 : 20 }}>
           {boxes.map((b) => (
             <Pressable
               key={b.id}
@@ -714,11 +739,14 @@ export function PCBox({
               style={{
                 minHeight: 40,
                 paddingVertical: 10,
-                borderBottomWidth: 2,
-                borderColor: b.id === box.id ? colors.accent : 'transparent',
+                borderWidth: classic ? 1 : 0,
+                borderBottomWidth: classic ? 1 : 2,
+                paddingHorizontal: classic ? 12 : 0,
+                backgroundColor: classic ? b.id === box.id ? colors.accent : colors.panel : undefined,
+                borderColor: classic ? colors.border : b.id === box.id ? colors.accent : 'transparent',
               }}
             >
-              <PixelText style={{ fontSize: 12 }}>
+              <PixelText style={{ fontSize: classic ? 14 : 12, color: classic && b.id === box.id ? colors.paper : colors.ink }}>
                 {b.name.toUpperCase()}
               </PixelText>
             </Pressable>
@@ -727,6 +755,10 @@ export function PCBox({
       </View>
       {!compact && (
         <View style={ui.between}>
+          {classic && <>
+            <Button label="Party" onPress={toggleParty}>{party ? 'Hide party' : 'Show party'}</Button>
+            {p && <View ref={actionsAnchor.ref} collapsable={false}><Button label="Pokémon actions" onPress={() => actionsAnchor.measure(() => setSheet('Pokémon actions'))}>Pokémon actions ···</Button></View>}
+          </>}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="All boxes"
@@ -892,9 +924,6 @@ export function PCBox({
             </>
           ) : sheet === 'Box options' ? (
             <>
-              <MenuItem onPress={() => setSheet('Box settings')}>
-                Wallpaper
-              </MenuItem>
               <MenuItem onPress={() => setSheet('Box settings')}>
                 Rename box
               </MenuItem>

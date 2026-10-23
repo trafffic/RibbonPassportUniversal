@@ -1,11 +1,11 @@
-import { tintHex, tierColour } from '../domain/art-ui';
+import { tintHex } from '../domain/art-ui';
 import {
   transferTitle,
   transferSummary,
   generationLabel,
 } from "../domain/transfer-copy";
-import React, { useRef, useState } from "react";
-import { View, Pressable, ScrollView, useWindowDimensions } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Pressable, useWindowDimensions, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import {
   awardName,
@@ -40,27 +40,32 @@ import {
 } from "./primitives";
 import { ChoiceField, EditorSheet, Field } from "./Editors";
 import { bubblePlacement, type Rect } from "./bubble-placement";
-export function PassportHero({ pokemon: p }: { pokemon: Pokemon }) {
+export function PassportHero({ pokemon: p, centered = false }: { pokemon: Pokemon; centered?: boolean }) {
   const { colors, dark } = useTheme();
+  const titleAward = p.title && p.title !== 'None' && catalog.ribbons[p.title] ? p.title : undefined;
   return (
     <View
       style={{
-        flexDirection: "row",
+        flexDirection: centered ? "column" : "row",
         alignItems: "center",
         gap: 15,
         paddingVertical: 12,
       }}
     >
-      <Sprite pokemon={p} size={70} />
-      <View style={{ flex: 1, gap: 6 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+      <Sprite pokemon={p} size={centered ? 120 : 70} />
+      <View style={{ flex: centered ? undefined : 1, gap: 6, alignItems: centered ? 'center' : undefined }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: centered ? 'center' : undefined, flexWrap: 'wrap', gap: 7 }}>
           <PixelText style={{ fontSize: 25 }}>{displayName(p)}</PixelText>
           {p.shiny && <Art name="shiny-dark" label="Shiny" size={17} />}
           <ConsoleIcon game={p.origingame} />
         </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
+          {titleAward && <Art name={'award-' + titleAward} size={20} label={`Title ribbon: ${awardName(titleAward)}`} />}
         <PixelText
           style={{
             fontSize: 14,
+            flexShrink: 1,
+            textAlign: centered ? 'center' : undefined,
             color:
               (p.title && p.title !== 'None'
                 ? tintHex('award-' + p.title, dark)
@@ -69,6 +74,7 @@ export function PassportHero({ pokemon: p }: { pokemon: Pokemon }) {
         >
           {p.titleText || catalog.titles[p.title] || "No title equipped"}
         </PixelText>
+        </View>
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
           Lv. {p.currentlevel} · {displayedAwards(p).length} awards
         </PixelText>
@@ -106,36 +112,37 @@ export function AwardGrid({
   ids,
   onSelect,
   selected,
+  onDismiss,
 }: {
   ids: string[];
   onSelect(id: string, anchor?: Rect): void;
   selected?: string;
+  onDismiss?(): void;
 }) {
   const { width } = useWindowDimensions(),
-    { colors } = useTheme(),
     rects = useRef<Record<string, Rect>>({});
+  const hoverOnly = Platform.OS === 'web' && width >= 1100;
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
       {ids.map((id) => (
         <Pressable
           key={id}
-          accessibilityRole="button"
+          accessibilityRole={hoverOnly ? 'img' : 'button'}
           accessibilityLabel={`Details for ${awardName(id)}`}
           accessibilityState={{ selected: selected === id }}
           onLayout={(e) => {
             rects.current[id] = e.nativeEvent.layout;
           }}
-          onPress={() => onSelect(id, rects.current[id])}
+          onPress={hoverOnly ? undefined : () => onSelect(id, rects.current[id])}
+          onHoverIn={hoverOnly ? () => onSelect(id, rects.current[id]) : undefined}
+          onHoverOut={hoverOnly ? onDismiss : undefined}
+          focusable={!hoverOnly}
           style={{
             width: width < 360 ? "18.5%" : "15.4%",
             minHeight: 55,
             alignItems: "center",
             justifyContent: "center",
             padding: 6,
-            borderRadius: 4,
-            borderWidth: 2,
-            borderColor: selected === id ? colors.accent : tierColour(id),
-            backgroundColor: selected === id ? colors.panel : "transparent",
           }}
         >
           <Art name={"award-" + id} size={34} />
@@ -152,47 +159,49 @@ export function TransferStatus({
   onPress(): void;
 }) {
   const t = transferCheck(p.currentgame, p),
+    needsAttention = !t.canAssess || t.lastChance.length > 0 || t.warnings.length > 0,
     { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Review transfer check"
       onPress={onPress}
-      style={{
+      style={[{
         paddingVertical: 14,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: colors.border,
+        paddingHorizontal: 10,
+        backgroundColor: needsAttention ? colors.warning : colors.board,
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
-      }}
+      }, Platform.OS === 'web' && ({
+        outlineColor: needsAttention ? colors.warningInk : colors.accent,
+      } as any)]}
     >
       <PixelText
         style={{
           fontSize: 26,
           color:
-            t.lastChance.length || t.warnings.length
+            needsAttention
               ? colors.warningInk
               : colors.accent,
         }}
       >
-        {t.isSafe ? "✓" : "!"}
+        {needsAttention ? "!" : "✓"}
       </PixelText>
       <View style={{ flex: 1, gap: 4 }}>
         <PixelText
           style={{
             fontSize: 17,
-            color: t.isSafe ? colors.accent : colors.warningInk,
+            color: needsAttention ? colors.warningInk : colors.accent,
           }}
         >
           {transferTitle(t)}
         </PixelText>
-        <PixelText style={{ fontSize: 13, color: colors.warningInk }}>
+        <PixelText style={{ fontSize: 13, color: needsAttention ? colors.warningInk : colors.accent }}>
           {transferSummary(t)}
         </PixelText>
       </View>
-      <PixelText style={{ fontSize: 14, color: colors.warningInk }}>
+      <PixelText style={{ fontSize: 14, color: needsAttention ? colors.warningInk : colors.accent }}>
         Review ›
       </PixelText>
     </Pressable>
@@ -202,10 +211,14 @@ function RibbonDescription({
   awardID,
   onGuide,
   onHeight,
+  onHoverIn,
+  onHoverOut,
 }: {
   awardID: string;
   onGuide(): void;
   onHeight?(height: number): void;
+  onHoverIn?(): void;
+  onHoverOut?(): void;
 }) {
   const { colors } = useTheme(),
     description =
@@ -228,6 +241,10 @@ function RibbonDescription({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Field guide"
+          onHoverIn={onHoverIn}
+          onHoverOut={onHoverOut}
+          onFocus={onHoverIn}
+          onBlur={onHoverOut}
           onPress={onGuide}
           style={{ paddingHorizontal: 12, paddingVertical: 8 }}
         >
@@ -242,29 +259,41 @@ export function RibbonBubble({
   anchor,
   container,
   onGuide,
+  onHoverIn,
+  onHoverOut,
 }: {
   awardID: string;
   anchor: Rect;
   container: { width: number; height: number };
   onGuide(): void;
+  onHoverIn?(): void;
+  onHoverOut?(): void;
 }) {
   const { colors } = useTheme(),
     [height, setHeight] = useState(120),
-    place = bubblePlacement(container, anchor, height);
+    contentHeight = height + 2,
+    place = bubblePlacement(container, anchor, contentHeight),
+    // Keep the full description outside the icon row rather than squeezing it
+    // into a short scroll area inside the overview section.
+    top = place.above ? anchor.y - 12 - contentHeight : anchor.y + anchor.height + 12;
   return (
-    <View
+    <Pressable
       accessibilityLabel="Ribbon description"
+      onHoverIn={onHoverIn}
+      onHoverOut={onHoverOut}
+      onFocus={onHoverIn}
+      onBlur={onHoverOut}
       style={{
+        zIndex: 20,
         position: "absolute",
         left: place.frame.x,
-        top: place.frame.y,
+        top,
         width: place.frame.width,
-        height: place.frame.height,
+        height: contentHeight,
       }}
     >
       <View
         style={{
-          flex: 1,
           backgroundColor: colors.panel,
           borderWidth: 1,
           borderColor: colors.border,
@@ -272,15 +301,15 @@ export function RibbonBubble({
           overflow: "hidden",
         }}
       >
-        <ScrollView>
           <RibbonDescription
             awardID={awardID}
             onGuide={onGuide}
             onHeight={setHeight}
+            onHoverIn={onHoverIn}
+            onHoverOut={onHoverOut}
           />
-        </ScrollView>
       </View>
-      <View
+      {(top + contentHeight <= anchor.y || top >= anchor.y + anchor.height) && <View
         pointerEvents="none"
         style={{
           position: "absolute",
@@ -294,27 +323,40 @@ export function RibbonBubble({
           [place.above ? "borderRightWidth" : "borderLeftWidth"]: 1,
           [place.above ? "borderBottomWidth" : "borderTopWidth"]: 1,
         }}
-      />
-    </View>
+      />}
+    </Pressable>
   );
 }
 export function PassportOverview({ pokemon: p }: { pokemon: Pokemon }) {
   const router = useRouter(),
+    { width } = useWindowDimensions(),
     { colors, ui } = useTheme();
+  const hoverOnly = Platform.OS === 'web' && width >= 1100;
   const [selected, setSelected] = useState(""),
     [anchor, setAnchor] = useState<Rect | null>(null),
     [gridAt, setGridAt] = useState({ x: 0, y: 0 }),
     [size, setSize] = useState({ width: 0, height: 0 }),
     [owned, setOwned] = useState(false),
     [gallery, setGallery] = useState(""),
-    [transfer, setTransfer] = useState(false);
+    [transfer, setTransfer] = useState(false),
+    hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
+    bubbleHovered = useRef(false);
   const close = () => {
+    clearTimeout(hoverTimer.current);
+    bubbleHovered.current = false;
     setSelected("");
     setAnchor(null);
   };
+  const closeLater = () => {
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => { if (!bubbleHovered.current) close(); }, 300);
+  };
+  const keepBubble = () => { bubbleHovered.current = true; clearTimeout(hoverTimer.current); };
+  const leaveBubble = () => { bubbleHovered.current = false; closeLater(); };
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
   return (
     <View style={{ gap: 22 }} onLayout={(e) => setSize(e.nativeEvent.layout)}>
-      {!!selected && (
+      {!!selected && !hoverOnly && (
         <Pressable
           accessibilityLabel="Hide description"
           onPress={close}
@@ -350,8 +392,11 @@ export function PassportOverview({ pokemon: p }: { pokemon: Pokemon }) {
         <AwardGrid
           ids={displayedAwards(p).slice(0, 12)}
           selected={selected}
+          onDismiss={closeLater}
           onSelect={(id, rect) => {
-            if (id === selected || !rect) return close();
+            clearTimeout(hoverTimer.current);
+            if (id === selected) return hoverOnly ? undefined : close();
+            if (!rect) return close();
             setSelected(id);
             setAnchor({
               ...rect,
@@ -368,6 +413,8 @@ export function PassportOverview({ pokemon: p }: { pokemon: Pokemon }) {
           awardID={selected}
           anchor={anchor}
           container={size}
+          onHoverIn={keepBubble}
+          onHoverOut={leaveBubble}
           onGuide={() =>
             router.push({
               pathname: "/guides",
@@ -451,7 +498,8 @@ export function TransferSheet({
     <EditorSheet title="Transfer check" close="Done" onClose={onClose}>
       <PixelText>{generationLabel(t)}</PixelText>
       <Panel
-        style={{ backgroundColor: t.isSafe ? colors.board : colors.warning }}
+        testID="transfer-check-summary"
+        style={{ borderWidth: 0, backgroundColor: t.isSafe ? colors.board : colors.warning }}
       >
         <PixelText
           style={{ color: t.isSafe ? colors.accent : colors.warningInk }}

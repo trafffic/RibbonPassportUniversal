@@ -9,6 +9,16 @@ export type PCFrame = { target: PCTarget; rect: Rect };
 /** The iPhone header is laid out for a board about 340 pt wide; scale it with the board. */
 export const headerScale = (boardWidth: number) =>
   Math.min(2.2, Math.max(0.75, boardWidth / 340));
+/** Interior of the wallpaper's title capsule, in its original 208 × 192 pixels. */
+export function pcHeader(art: Rect) {
+  return {
+    x: art.x + art.width * 24 / 208,
+    y: art.y + art.height * 8 / 192,
+    width: art.width * 156 / 208,
+    height: art.height * 24 / 192,
+    arrowWidth: Math.min(56, Math.max(32, art.width * 24 / 208)),
+  };
+}
 const contains = (r: Rect, p: Point) =>
   r.width > 0 &&
   r.height > 0 &&
@@ -25,11 +35,7 @@ export function pcFrames(
     sy = art.height / m.height,
     cellW = (m.gridWidth * sx) / m.columns,
     cellH = (m.gridHeight * sy) / m.rows,
-    headerY = art.y + art.height * 0.018,
-    headerH = art.height * 0.15,
-    headerX = art.x + art.width * 0.085,
-    headerW = art.width * 0.83,
-    arrowWidth = 28 * headerScale(art.width);
+    header = pcHeader(art);
   return [
     ...Array.from({ length: m.columns * m.rows }, (_, slot) => ({
       target: { kind: 'box', slot } as PCTarget,
@@ -46,15 +52,15 @@ export function pcFrames(
     })),
     {
       target: { kind: 'page', direction: -1 } as PCTarget,
-      rect: { x: headerX, y: headerY, width: arrowWidth, height: headerH },
+      rect: { x: header.x, y: header.y, width: header.arrowWidth, height: header.height },
     },
     {
       target: { kind: 'page', direction: 1 } as PCTarget,
       rect: {
-        x: headerX + headerW - arrowWidth,
-        y: headerY,
-        width: arrowWidth,
-        height: headerH,
+        x: header.x + header.width - header.arrowWidth,
+        y: header.y,
+        width: header.arrowWidth,
+        height: header.height,
       },
     },
   ];

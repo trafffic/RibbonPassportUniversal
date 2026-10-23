@@ -40,15 +40,16 @@ test('hit-testing finds party slots and box arrows, and misses outside', () => {
     kind: 'party',
     slot: 1,
   });
-  assert.deepEqual(hitTest({ x: 50 + 20, y: 10 }, frames), {
+  assert.deepEqual(hitTest({ x: 50 + 40, y: 20 }, frames), {
     kind: 'page',
     direction: -1,
   });
-  assert.deepEqual(hitTest({ x: 50 + 208 - 20, y: 10 }, frames), {
+  assert.deepEqual(hitTest({ x: 50 + 164, y: 20 }, frames), {
     kind: 'page',
     direction: 1,
   });
   assert.equal(hitTest({ x: 0, y: 190 }, frames), null);
+  assert.equal(hitTest({ x: 50 + 20, y: 10 }, frames), null);
   assert.equal(hitTest({ x: 50 + 8 + 192, y: 40 }, frames), null);
 });
 test('empty rects never match and pages wrap', () => {

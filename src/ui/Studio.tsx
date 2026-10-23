@@ -258,7 +258,7 @@ export function RibbonStudio({
   id?: string;
   requested?: string;
 }) {
-  const state = useCollection(),
+  const { colors } = useTheme(), state = useCollection(),
     c = state.collection!;
   useEffect(() => {
     if (id && c.selectedID !== id && c.records.some((r) => r.id === id))
@@ -272,10 +272,10 @@ export function RibbonStudio({
       ribbon.find((r) => r.id === c.selectedID)?.pokemon ??
       ribbon[0]?.pokemon);
   return (
-    <StudioPanes
-      rail={<StudioRail kind="ribbon" />}
-      box={<PCBox />}
-      main={
+    <View testID="studio" style={{ flex: 1, minHeight: 0, flexDirection: 'row', alignItems: 'stretch', gap: 24 }}>
+      <View style={{ flex: 1.5, minWidth: 0, minHeight: 0 }}><PCBox classic followPassport /></View>
+      <ScrollView style={{ flex: 1, minWidth: 390, minHeight: 0, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel }} contentContainerStyle={{ padding: 18 }}>
+      {
         missing ? (
           <Missing message="This Pokémon is no longer in your collection." />
         ) : p ? (
@@ -284,14 +284,8 @@ export function RibbonStudio({
           <EmptyPane text="Add a Pokémon or try the demo to see its passport here." />
         )
       }
-      inspector={
-        p ? (
-          <PassportInspector pokemon={p} />
-        ) : (
-          <EmptyPane text="Transfer checks and Journey appear here." />
-        )
-      }
-    />
+      </ScrollView>
+    </View>
   );
 }
 

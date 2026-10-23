@@ -38,7 +38,7 @@ test('party visibility persists per section and Export Ribbon Masters downloads'
   page,
 }) => {
   await demo(page);
-  await button(page, 'Party').click();
+  if (!(await button(page, 'Empty party slot 1').isVisible())) await button(page, 'Party').click();
   await page.reload();
   await expect(button(page, 'Empty party slot 1')).toBeVisible();
   const wait = page.waitForEvent('download');

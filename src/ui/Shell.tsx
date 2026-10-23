@@ -10,10 +10,13 @@ export function Shell({
   children,
   narrow = false,
   studio = false,
+  wide = false,
 }: React.PropsWithChildren<{
   narrow?: boolean;
   /** Desktop studio: panes fill the window and scroll on their own. */
   studio?: boolean;
+  /** Classic PC gives storage most of the desktop width. */
+  wide?: boolean;
 }>) {
   const router = useRouter(),
     path = usePathname(),
@@ -167,7 +170,7 @@ export function Shell({
             style={[
               ui.between,
               {
-                maxWidth: fill ? 1600 : width >= 1440 ? 1440 : 1320,
+                maxWidth: fill || wide ? 1600 : width >= 1440 ? 1440 : 1320,
                 width: "100%",
                 alignSelf: "center",
                 paddingHorizontal: fill ? 16 : 24,
@@ -195,6 +198,7 @@ export function Shell({
             alignSelf: "center",
             paddingHorizontal: 16,
             paddingTop: 12,
+            paddingBottom: 12,
             gap: 12,
           }}
         >
@@ -213,7 +217,7 @@ export function Shell({
           <View
             style={{
               maxWidth:
-                narrow && width >= 1100 ? 960 : width >= 1440 ? 1440 : 1320,
+                wide ? 1600 : narrow && width >= 1100 ? 960 : width >= 1440 ? 1440 : 1320,
               width: "100%",
               alignSelf: "center",
               padding: phone ? 16 : 24,
@@ -261,7 +265,7 @@ export function Shell({
           <View
             accessibilityLiveRegion="polite"
             style={{
-              maxWidth: fill ? 1600 : width >= 1440 ? 1440 : 1320,
+              maxWidth: fill || wide ? 1600 : width >= 1440 ? 1440 : 1320,
               width: "100%",
               alignSelf: "center",
               paddingHorizontal: fill ? 16 : 24,

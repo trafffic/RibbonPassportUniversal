@@ -21,15 +21,18 @@ export const editableFields = [
   'trainername',
 ] as const;
 export type PokemonDetails = Pick<Pokemon, (typeof editableFields)[number]>;
+export const defaultBoxCount = 16;
 export function emptyCollection(
   id: string,
   revision: string,
   boxID: string,
   at = '2001-01-01T00:00:00Z',
 ): Collection {
-  const boxes: Box[] = [
-    { id: boxID, name: 'Box 01', slots: Array(30).fill(null) },
-  ];
+  const boxes: Box[] = Array.from({ length: defaultBoxCount }, (_, i) => ({
+    id: i === 0 ? boxID : `${boxID}-${i + 1}`,
+    name: `Box ${String(i + 1).padStart(2, '0')}`,
+    slots: Array(30).fill(null),
+  }));
   const source = {
     format: 'ribbon-passport',
     version: 1,
@@ -55,6 +58,48 @@ export function emptyCollection(
     selectedBoxID: boxID,
     operations: [],
   };
+}
+/** Expand older storage without moving Pokémon or changing the active box. */
+export function ensureDefaultBoxes(
+  c: Collection,
+  context: ChangeContext,
+): Collection {
+  const isRibbonBox = (b: Box) => (b.kind ?? 'ribbon') === 'ribbon';
+  // The first demo seeded this placeholder as its second box. Repair it even
+  // when an earlier default-box migration has already expanded storage to 16.
+  const legacy = c.boxes.find(b =>
+    isRibbonBox(b) && b.id === 'sample-box-2' && b.name === 'Next adventure',
+  );
+  const count = c.boxes.filter(isRibbonBox).length;
+  if (count >= defaultBoxCount && !legacy) return c;
+  let ordinal = 0;
+  const boxes = c.boxes.map(b => {
+    if (!isRibbonBox(b)) return b;
+    ordinal++;
+    const autoAdded = /^Box \d+$/.test(b.name) && c.operations.some(o =>
+      o.kind === 'create-box' && b.id.startsWith(`${o.id}-box-`),
+    );
+    return legacy && (b === legacy || autoAdded)
+      ? { ...b, name: `Box ${String(ordinal).padStart(2, '0')}` }
+      : b;
+  }),
+    ids = new Set(boxes.map(b => b.id)),
+    names = new Set(boxes.map(b => b.name));
+  let number = 1;
+  while (boxes.length - c.boxes.length < defaultBoxCount - count) {
+    const id = `${context.id}-box-${number}`,
+      name = `Box ${String(number++).padStart(2, '0')}`;
+    if (ids.has(id) || names.has(name)) continue;
+    boxes.push({ id, name, slots: Array(30).fill(null) });
+    ids.add(id);
+    names.add(name);
+  }
+  return append(
+    { ...c, boxes, layoutChanged: true },
+    context,
+    boxes.length > c.boxes.length ? 'create-box' : 'edit-box',
+    boxes[c.boxes.length]?.id ?? legacy!.id,
+  );
 }
 export function blankPokemon(id: string): Pokemon {
   return {

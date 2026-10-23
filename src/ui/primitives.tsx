@@ -49,6 +49,7 @@ export function Button({
   label,
   testID,
   art,
+  block = false,
 }: {
   children: React.ReactNode;
   onPress: () => void;
@@ -57,6 +58,7 @@ export function Button({
   label?: string;
   testID?: string;
   art?: string;
+  block?: boolean;
 }) {
   const { colors, ui, dark } = useTheme();
   const { isTablet } = useLayout();
@@ -80,6 +82,7 @@ export function Button({
         },
         // Wide screens: size to content instead of stretching across the column.
         isTablet && { alignSelf: 'flex-start' as const },
+        block && { alignSelf: 'stretch' as const },
         Platform.OS === 'web' && ({ cursor: disabled ? 'default' : 'pointer' } as any),
         hovered && !disabled && { opacity: 0.85 },
         focused && { borderWidth: 2 },

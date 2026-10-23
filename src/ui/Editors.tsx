@@ -41,7 +41,6 @@ import { CornerButton } from './CornerButton';
 import { TerminalGlyph } from './TerminalGlyph';
 import type { Glyph } from './corner-glyph';
 import { useDensity } from './density';
-import { wallpapers } from './wallpapers';
 import { gameColour } from '../domain/game-colours';
 import { captureMarkIDs, setCaptureMarks } from '../domain/passport';
 import { sizeChoices } from '../domain/size-class';
@@ -803,48 +802,10 @@ export function BoxEditor({ box, onClose }: { box?: Box; onClose(): void }) {
       box?.name ??
         `Box ${String(state.collection!.boxes.length + 1).padStart(2, '0')}`,
     ),
-    [wallpaper, setWallpaper] = useState(
-      box?.wallpaper?.sunMoon ??
-        wallpapers[
-          state.collection!.boxes.findIndex((b) => b.id === box?.id) %
-            wallpapers.length
-        ]?.id ??
-        'sm01',
-    ),
     [error, setError] = useState('');
   return (
     <EditorSheet title={box ? 'Box settings' : 'Create box'} onClose={onClose}>
       <Field label="Box name" value={name} onChange={setName} />
-      {box && (
-        <>
-          <PixelText style={ui.label}>SUN / MOON WALLPAPER</PixelText>
-          <View style={[ui.row, { gap: 8 }]}>
-            {wallpapers.map((w) => (
-              <Pressable
-                key={w.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Wallpaper ${w.name}`}
-                accessibilityState={{ selected: wallpaper === w.id }}
-                onPress={() => setWallpaper(w.id)}
-                style={{
-                  width: '30%',
-                  flexGrow: 1,
-                  padding: 4,
-                  borderWidth: wallpaper === w.id ? 2 : 1,
-                  borderColor: wallpaper === w.id ? colors.ink : colors.border,
-                }}
-              >
-                <w.Preview />
-                <PixelText
-                  style={{ fontSize: 13, textAlign: 'center', padding: 4 }}
-                >
-                  {w.name}
-                </PixelText>
-              </Pressable>
-            ))}
-          </View>
-        </>
-      )}
       {!!error && (
         <PixelText accessibilityRole="alert">{state.error || error}</PixelText>
       )}
@@ -855,7 +816,6 @@ export function BoxEditor({ box, onClose }: { box?: Box; onClose(): void }) {
           const result = box
             ? await state.updateBox(box.id, {
                 name,
-                wallpaper: { ...box.wallpaper, sunMoon: wallpaper },
               })
             : await state.addBox(name);
           if (result) onClose();

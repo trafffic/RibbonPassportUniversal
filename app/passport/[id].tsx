@@ -11,7 +11,7 @@ export default function PassportScreen() {
     { width, isDesktop } = useLayout();
   if (isDesktop)
     return (
-      <Shell studio>
+      <Shell wide studio>
         <RibbonStudio id={id} requested={tab} />
       </Shell>
     );

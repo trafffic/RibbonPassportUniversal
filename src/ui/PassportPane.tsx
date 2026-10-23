@@ -61,9 +61,7 @@ export function PassportPane({
           gap: 8,
         }}
       >
-        {studio ? (
-          <View style={{ width: 40 }} />
-        ) : isPhone ? (
+        {isPhone ? (
           <CornerButton
             title="Back"
             kind="back"

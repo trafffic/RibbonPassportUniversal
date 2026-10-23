@@ -3,8 +3,7 @@ import { View } from 'react-native';
 import { useCollection } from '../src/state/CollectionProvider';
 import { Shell } from '../src/ui/Shell';
 import { PCBox } from '../src/ui/PCBox';
-import { PokemonSummary } from '../src/ui/PokemonSummary';
-import { RibbonStudio } from '../src/ui/Studio';
+import { ClassicPassport, PokemonSummary } from '../src/ui/PokemonSummary';
 import { useLayout } from '../src/ui/layout';
 export default function CollectionScreen() {
   const { collection } = useCollection(),
@@ -14,35 +13,32 @@ export default function CollectionScreen() {
       (r) => r.id === collection.selectedID && !r.pokemon.showdownSet,
     )?.pokemon ??
     collection?.records.find((r) => !r.pokemon.showdownSet)?.pokemon;
-  const empty = !collection?.records.some((r) => !r.pokemon.showdownSet);
-  if (isDesktop && !empty)
-    return (
-      <Shell studio>
-        <RibbonStudio />
-      </Shell>
-    );
   const side = width >= 980;
   return (
-    <Shell>
+    <Shell wide={isDesktop} studio={isDesktop && !!p}>
       <View
+        testID={isDesktop ? 'classic-collection' : undefined}
         style={{
           flexDirection: side ? 'row' : 'column',
           gap: 24,
-          alignItems: 'flex-start',
+          alignItems: isDesktop ? 'stretch' : 'flex-start',
+          flex: isDesktop ? 1 : undefined,
+          minHeight: 0,
         }}
       >
         <View
           style={{
-            flex: side ? 1.42 : undefined,
+            flex: side ? 1 : undefined,
             width: side ? undefined : '100%',
             minWidth: 0,
+            minHeight: 0,
           }}
         >
-          <PCBox />
+          <PCBox classic={isDesktop} />
         </View>
         {side && p && (
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <PokemonSummary pokemon={p} />
+          <View style={{ width: isDesktop ? 340 : undefined, flex: isDesktop ? undefined : 1, minWidth: 0, minHeight: 0 }}>
+            {isDesktop ? <ClassicPassport key={p.id} pokemon={p} /> : <PokemonSummary pokemon={p} />}
           </View>
         )}
       </View>

@@ -1,4 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
+import fs from 'node:fs';
 import {
   button,
   mainTab,
@@ -9,21 +10,73 @@ import {
   offline,
   demo,
 } from './helpers';
-test('box menus rename, wallpaper, move/swap, party and undo persist correctly', async ({
+test('the legacy demo opens with Box 01 through Box 16 and no Next adventure placeholder', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'Storage migration is independent of viewport size');
+  await demo(page);
+  await backups(page);
+  const raw = JSON.parse(fs.readFileSync('tests/fixtures/native-app-v1.json', 'utf8'));
+  raw.collection.storage.boxes = [
+    { id: 'first', name: 'Box 01', slots: [] },
+    { id: 'sample-box-2', name: 'Next adventure', slots: ['native-import-uuid'] },
+  ];
+  await importText(page, JSON.stringify(raw));
+  await expect(button(page, 'Next adventure')).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: /^Box \d\d$/ })).toHaveCount(16);
+  await expect(button(page, 'Next adventure')).toHaveCount(0);
+  await button(page, 'Next box').click();
+  await expect(button(page, 'Rename Box 02')).toBeVisible();
+  await expect(page.getByTestId('pc-slot-1')).toHaveAttribute('aria-label', 'Select Archive');
+  await button(page, 'Previous box').click();
+  await button(page, 'Previous box').click();
+  await expect(button(page, 'Rename Box 16')).toBeVisible();
+  await page.reload();
+  await expect(button(page, 'Rename Box 16')).toBeVisible();
+  await button(page, 'Next box').click();
+  await expect(button(page, 'Rename Box 01')).toBeVisible();
+});
+test('older saved collections expand to sixteen boxes once without changing their contents', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'Storage migration is independent of viewport size');
+  await demo(page);
+  await backups(page);
+  await importText(page, fs.readFileSync('tests/fixtures/native-app-v1.json', 'utf8'));
+  await expect(button(page, 'Select Archive')).toBeVisible();
+  await backups(page);
+  const before = JSON.parse(await download(page, 'Export collection')).collection;
+  expect(before.boxes).toHaveLength(1);
+  await page.goto('/');
+  await page.reload();
+  await expect(page.getByRole('button', { name: /^(Archive box|Box \d\d)$/ })).toHaveCount(16);
+  await expect(page.getByTestId('pc-slot-1')).toHaveAttribute('aria-label', 'Select Archive');
+  await backups(page);
+  const after = JSON.parse(await download(page, 'Export collection')).collection;
+  expect(after.boxes[0]).toEqual(before.boxes[0]);
+  expect(after.records).toEqual(before.records);
+  expect(after.source).toEqual(before.source);
+  expect(after.partyIDs).toEqual(before.partyIDs);
+  expect(after.selectedBoxID).toBe(before.selectedBoxID);
+  await page.reload();
+  await button(page, 'App backup').click();
+  const reopened = JSON.parse(await download(page, 'Export collection')).collection;
+  expect(reopened).toEqual(after);
+});
+test('box menus rename, automatic backgrounds, move/swap, party and undo persist correctly', async ({
   page,
   context,
 }, info) => {
   await demo(page);
   await options(page, 'New box');
-  await expect(button(page, 'Box 02')).toBeVisible();
+  await expect(button(page, 'Rename Box 17')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Box background: Forest', exact: true })).toBeVisible();
   await button(page, 'Box options').click();
   await button(page, 'Rename box').click();
   await page
     .getByRole('textbox', { name: 'Box name', exact: true })
     .fill('Travellers');
-  await button(page, 'Wallpaper Beach').click();
+  await expect(page.getByRole('button', { name: /^Wallpaper / })).toHaveCount(0);
   await button(page, 'Save box').click();
   await button(page, 'Box 01').click();
+  await expect(page.getByRole('img', { name: 'Box background: Forest', exact: true })).toBeVisible();
   await button(page, 'Select Sparky').click();
   await button(page, 'Pokémon actions').click();
   await button(page, 'Move').click();
@@ -48,9 +101,7 @@ test('box menus rename, wallpaper, move/swap, party and undo persist correctly',
   await backups(page);
   const c = JSON.parse(await download(page, 'Export collection')).collection;
   expect(c.partyIDs).toContain('sample-collection-v1-pokemon-0');
-  expect(
-    c.boxes.find((b: any) => b.name === 'Travellers').wallpaper.sunMoon,
-  ).toBe('sm09');
+  expect(c.boxes.some((b: any) => b.name === 'Travellers')).toBe(true);
   await page.screenshot({
     path: info.outputPath('box-export.png'),
     fullPage: true,
@@ -177,7 +228,7 @@ test('dragging moves a box Pokémon into the party and a party Pokémon back to 
   page,
 }) => {
   await demo(page);
-  await button(page, 'Party').click();
+  if (!(await button(page, 'Empty party slot 1').isVisible())) await button(page, 'Party').click();
   const centre = async (l: Locator) => {
     const box = (await l.boundingBox())!;
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 };

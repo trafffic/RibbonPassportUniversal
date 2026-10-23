@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import { addPokemon, blankPokemon, createBox, editBox, editPokemon, movePokemon, restoreCollection, emptyCollection } from '../src/domain/organisation';
+import { addPokemon, blankPokemon, createBox, editBox, editPokemon, movePokemon, restoreCollection, emptyCollection, ensureDefaultBoxes } from '../src/domain/organisation';
 import { importBackup, exportSource, exportUniversal } from '../src/backup/codec';
 import { changeRibbon } from '../src/domain/collection';
 import { recordedVisits } from '../src/domain/catalog';
@@ -12,6 +12,65 @@ const context = (id: string) => ({ id, at: '2026-10-21T12:00:00Z' });
 const empty = () => importBackup('{"fileVersion":5,"boxes":["Home"],"pokemon":[],"future":{"keep":true}}', 'test', 'initial');
 const companion = (id: string) => ({ ...blankPokemon(id), species: 'metagross', currentlevel: 100, origingame: 'emerald', currentgame: 'bd' });
 const fixture = fs.readFileSync(new URL('./fixtures/native-app-v1.json', import.meta.url), 'utf8');
+
+test('new collections start with sixteen independent empty boxes and round-trip their identities', () => {
+  const c = emptyCollection('new', 'r', 'box');
+  assert.equal(c.boxes.length, 16);
+  assert.equal(new Set(c.boxes.map(b => b.id)).size, 16);
+  assert.equal(c.boxes[0]!.id, c.selectedBoxID);
+  assert.deepEqual(c.boxes.map(b => b.name), Array.from({ length: 16 }, (_, i) => `Box ${String(i + 1).padStart(2, '0')}`));
+  assert.ok(c.boxes.every(b => b.slots.length === 30 && b.slots.every(id => id === null)));
+  assert.notEqual(c.boxes[0]!.slots, c.boxes[1]!.slots);
+  assert.deepEqual(importBackup(exportSource(c), 'other', 'other').boxes, c.boxes);
+});
+
+test('older collections gain empty ribbon boxes once, preserving contents, selection and competitive storage', () => {
+  let c = addPokemon(empty(), companion('p'), empty().boxes[0]!.id, context('add'));
+  c = createBox(c, 'competitive', 'Box 02', context('competitive'));
+  c = { ...c, boxes: c.boxes.map(b => b.id === 'competitive' ? { ...b, kind: 'showdown' } : b) };
+  const next = ensureDefaultBoxes(c, context('defaults'));
+  assert.equal(next.boxes.length, 17);
+  assert.equal(next.boxes.filter(b => b.kind !== 'showdown').length, 16);
+  assert.deepEqual(next.boxes.slice(0, 2), c.boxes);
+  assert.deepEqual(next.records, c.records);
+  assert.deepEqual(next.partyIDs, c.partyIDs);
+  assert.equal(next.selectedID, c.selectedID);
+  assert.equal(next.selectedBoxID, c.selectedBoxID);
+  assert.equal(next.source, c.source);
+  assert.equal(new Set(next.boxes.map(b => b.name)).size, 17);
+  assert.equal(ensureDefaultBoxes(next, context('again')), next);
+  assert.deepEqual(importBackup(exportSource(next), 'other', 'other').boxes, next.boxes);
+  const larger = createBox(next, 'extra', 'Extra', context('extra'));
+  assert.equal(ensureDefaultBoxes(larger, context('again')), larger);
+});
+
+test('the old demo placeholder becomes Box 02 with all sixteen numbered boxes, including already expanded saves', () => {
+  for (const expanded of [false, true]) {
+    let c = emptyCollection('demo', 'initial', 'first');
+    c = { ...c, boxes: [c.boxes[0]!, { id: 'sample-box-2', name: 'Next adventure', slots: Array(30).fill(null) }] };
+    const source = JSON.parse(c.source.text);
+    source.collection.storage.boxes = c.boxes;
+    c = { ...c, source: { ...c.source, text: JSON.stringify(source) } };
+    c = addPokemon(c, companion('p'), 'sample-box-2', context('add'));
+    if (expanded) {
+      c = createBox(c, 'old-defaults-box-2', 'Box 02', context('old-defaults'));
+      c = { ...c, boxes: [...c.boxes, ...Array.from({ length: 13 }, (_, i) => ({
+        id: `old-defaults-box-${i + 3}`,
+        name: `Box ${String(i + 3).padStart(2, '0')}`,
+        slots: Array(30).fill(null),
+      }))] };
+    }
+    c = { ...c, selectedBoxID: 'sample-box-2' };
+    const next = ensureDefaultBoxes(c, context('repair'));
+    assert.deepEqual(next.boxes.map(b => b.name), Array.from({ length: 16 }, (_, i) => `Box ${String(i + 1).padStart(2, '0')}`));
+    assert.deepEqual(next.boxes.slice(0, c.boxes.length).map(b => b.id), c.boxes.map(b => b.id));
+    assert.deepEqual(next.boxes[1]!.slots, c.boxes[1]!.slots);
+    assert.deepEqual(next.records, c.records);
+    assert.equal(next.selectedBoxID, 'sample-box-2');
+    assert.equal(ensureDefaultBoxes(next, context('again')), next);
+    assert.deepEqual(importBackup(exportSource(next), 'other', 'other').boxes, next.boxes);
+  }
+});
 
 test('empty collection: add three stable identities, move across two boxes, undo and round-trip all positions', () => {
   let c = empty();

@@ -49,15 +49,13 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
   });
   const width = page.viewportSize()!.width;
   if (width >= 1100) {
-    // The desktop studio shows the selected Pokémon's passport in place.
-    await expect(page.getByTestId('studio')).toBeVisible();
-  } else {
-    await button(
-      page,
-      width >= 980 ? 'Open passport preview' : 'Open passport',
-    ).click();
-    await expect(page).toHaveURL(new RegExp(passport));
+    await expect(page.getByTestId('classic-collection')).toBeVisible();
   }
+  await button(
+    page,
+    width >= 980 ? 'Open passport preview' : 'Open passport',
+  ).click();
+  await expect(page).toHaveURL(new RegExp(passport));
   await record(page, 'Alert Ribbon');
   await expect(
     page
