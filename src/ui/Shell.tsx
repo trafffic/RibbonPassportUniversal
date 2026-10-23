@@ -177,7 +177,12 @@ export function Shell({
               },
             ]}
           >
-            <View style={ui.row}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Return to your box"
+              onPress={() => router.navigate('/')}
+              style={[ui.row, { minHeight: 44 }]}
+            >
               <Image
                 source={require("../../assets/brand/ribbon-logo.png")}
                 accessibilityLabel="Ribbon Passport logo"
@@ -188,7 +193,7 @@ export function Shell({
               <PixelText style={{ fontSize: fill || phone ? 20 : 24 }}>
                 RIBBON PASSPORT
               </PixelText>
-            </View>
+            </Pressable>
             {!phone && dock}
           </View>
         </View>
