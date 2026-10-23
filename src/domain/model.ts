@@ -19,6 +19,8 @@ export interface Pokemon {
   metLevel?: number;
   sizeScale?: number;
   ball?: string;
+  language?: string;
+  trainername?: string;
   source?: string;
   showdownSet?: ShowdownSet;
   communitySourceIDs?: string[];

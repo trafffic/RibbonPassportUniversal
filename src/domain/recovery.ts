@@ -226,6 +226,8 @@ export function recoveryChanges(c: Collection, e: RecoveryEntry): string[] {
           'metLevel',
           'sizeScale',
           'ball',
+          'language',
+          'trainername',
           'source',
         ] as const
       ).some((k) => !same(now[k], old[k]))

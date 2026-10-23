@@ -329,7 +329,7 @@ export function RibbonBoard({
         <TransferSheet pokemon={p} from={game} onClose={() => setSheet('')} />
       )}
       {sheet === 'size' && (
-        <EditorSheet title="Size marks" onClose={() => setSheet('')}>
+        <EditorSheet title="Size marks" close="Done" onClose={() => setSheet('')}>
           <PixelText>
             Size marks depend on the recorded scale and a compatible game.
           </PixelText>
@@ -343,7 +343,7 @@ export function RibbonBoard({
         </EditorSheet>
       )}
       {sheet === 'owned' && (
-        <EditorSheet title="Owned awards" onClose={() => setSheet('')}>
+        <EditorSheet title="Owned awards" close="Done" onClose={() => setSheet('')}>
           <PixelText>{owned.length} awards owned</PixelText>
           <Button onPress={() => setOriginals(!originals)}>
             {originals
@@ -362,6 +362,7 @@ export function RibbonBoard({
       {!!selected && (
         <EditorSheet
           title={awardName(selected)}
+          close="Done"
           onClose={() => setSelected('')}
         >
           <View style={ui.row}>

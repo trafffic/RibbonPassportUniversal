@@ -112,11 +112,23 @@ export default function Settings() {
         Ribbon Passport {Constants.expoConfig?.version ?? ''}
       </PixelText>
       {!!sheet && (
-        <EditorSheet title={sheet} onClose={() => setSheet('')}>
+        <EditorSheet
+          title={sheet}
+          close={sheet === 'App backup' ? 'Cancel' : 'Done'}
+          onClose={() => setSheet('')}
+        >
           {sheet === 'App backup' ? (
             <BackupPanel onClose={() => setSheet('')} />
           ) : sheet === 'Sources & credits' ? (
             <>
+              <CommunityLink
+                title="App credits & licences"
+                subtitle="Artwork, data, font and software notices"
+                onPress={() => {
+                  setSheet('');
+                  router.push('/credits');
+                }}
+              />
               <TextInput
                 accessibilityLabel="Find an author or website"
                 value={query}

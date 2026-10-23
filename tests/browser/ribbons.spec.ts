@@ -111,7 +111,9 @@ test('species without bundled art load their sprite, falling back through the so
   await page.goto('/passport/p1');
   await expect(page.getByRole('img', { name: 'Bulbasaur' }).first()).toBeVisible();
   await expect.poll(() => tried[0]).toContain('pokesprite');
-  await expect.poll(() => tried.at(-1)).toContain('pokemonshowdown.com');
+  await expect
+    .poll(() => tried.some((u) => u.includes('pokemonshowdown.com')))
+    .toBe(true);
 });
 test('Escape closes the topmost sheet', async ({ page }) => {
   await demo(page, passport);

@@ -1,7 +1,7 @@
-import { useWindowDimensions } from "react-native";
-import { layoutClass } from "./layout-math";
+import { useWindowDimensions } from 'react-native';
+import { layoutClass } from './layout-math';
 
-export * from "./layout-math";
+export * from './layout-math';
 
 export function useLayout() {
   const { width, height } = useWindowDimensions();
@@ -10,8 +10,8 @@ export function useLayout() {
     width,
     height,
     cls,
-    isPhone: cls === "phone",
-    isTablet: cls !== "phone",
-    isDesktop: cls === "desktop" || cls === "wide",
+    isPhone: cls === 'phone',
+    isTablet: cls !== 'phone',
+    isDesktop: cls === 'desktop' || cls === 'wide',
   };
 }
