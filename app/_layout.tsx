@@ -18,9 +18,13 @@ export default function RootLayout() {
       'serviceWorker' in navigator &&
       !__DEV__
     ) {
-      navigator.serviceWorker
-        .register('/sw.js')
+      const checkForUpdate = () => navigator.serviceWorker
+        .register('/sw.js', { updateViaCache: 'none' })
+        .then((registration) => registration.update())
         .catch((e) => console.error('Offline cache registration failed', e));
+      void checkForUpdate();
+      window.addEventListener('focus', checkForUpdate);
+      return () => window.removeEventListener('focus', checkForUpdate);
     }
   }, []);
   if (error)

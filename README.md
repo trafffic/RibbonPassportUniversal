@@ -22,7 +22,7 @@ npm run export:web
 npm run serve
 ```
 
-Open http://127.0.0.1:8081. The development server is not the offline test target. A production export precaches the app shell, every route bundle, catalogue, font, and referenced image. Once caching completes, reloads and deep links work offline. Localhost previews load the latest exported HTML on reload and activate new caches immediately, with cached HTML as an offline fallback. On other hosts, a service worker update activates after the old windows close. Browser storage belongs to this origin; changing the port, clearing site data, or private-browsing policies can make a different/empty collection appear. Export backups for portability.
+Open http://127.0.0.1:8081. The development server is not the offline test target. A production export precaches the app shell, every route bundle, catalogue, font, and referenced image. Once caching completes, reloads and deep links work offline. Online navigations request fresh HTML, with cached HTML as an offline fallback. New service workers activate once their files finish caching, even with existing tabs open; refresh to load the updated interface. The previous shell's assets remain available to older open tabs. Update checks bypass HTTP caches and run again when the window regains focus. Browser storage belongs to this origin; changing the port, clearing site data, or private-browsing policies can make a different/empty collection appear. Export backups for portability.
 
 ## Try the app
 
