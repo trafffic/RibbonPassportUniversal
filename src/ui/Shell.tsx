@@ -1,9 +1,9 @@
 import React from "react";
-import { ScrollView, View, Pressable, useWindowDimensions } from "react-native";
+import { Image, ScrollView, View, Pressable, useWindowDimensions } from "react-native";
 import { usePathname, useRouter, useLocalSearchParams } from "expo-router";
 import { useCollection } from "../state/CollectionProvider";
 import { useTheme } from "./theme";
-import { Art, Button, Panel, PixelText } from "./primitives";
+import { Button, Panel, PixelText } from "./primitives";
 import { BackupPanel } from "./BackupPanel";
 import { TerminalGlyph } from "./TerminalGlyph";
 export function Shell({
@@ -164,7 +164,6 @@ export function Shell({
   const loading = !state.error && <LoadingSkeleton />;
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
-      {!phone && (
         <View style={{ borderBottomWidth: 1, borderColor: colors.border }}>
           <View
             style={[
@@ -173,21 +172,26 @@ export function Shell({
                 maxWidth: fill || wide ? 1600 : width >= 1440 ? 1440 : 1320,
                 width: "100%",
                 alignSelf: "center",
-                paddingHorizontal: fill ? 16 : 24,
-                paddingVertical: fill ? 8 : 16,
+                paddingHorizontal: fill || phone ? 16 : 24,
+                paddingVertical: fill || phone ? 8 : 16,
               },
             ]}
           >
             <View style={ui.row}>
-              <Art name="award-earth-ribbon" size={fill ? 24 : 30} />
-              <PixelText style={{ fontSize: fill ? 20 : 24 }}>
+              <Image
+                source={require("../../assets/brand/ribbon-logo.png")}
+                accessibilityLabel="Ribbon Passport logo"
+                resizeMode="contain"
+                fadeDuration={0}
+                style={{ width: phone ? 24 : fill ? 28 : 36, height: phone ? 24 : fill ? 28 : 36 }}
+              />
+              <PixelText style={{ fontSize: fill || phone ? 20 : 24 }}>
                 RIBBON PASSPORT
               </PixelText>
             </View>
-            {dock}
+            {!phone && dock}
           </View>
         </View>
-      )}
       {fill ? (
         <View
           style={{
