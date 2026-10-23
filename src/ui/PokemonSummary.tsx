@@ -8,9 +8,11 @@ import { PassportHero, PassportOverview, RibbonBubble, TransferSheet, TransferSt
 import { awardName, displayedAwards } from '../domain/catalog';
 import { guidesFor } from '../domain/community';
 import type { Rect } from './bubble-placement';
+import { usePassportLink } from './usePassportLink';
 
 /** Desktop Classic PC: a compact passport beside the main storage board. */
 export function ClassicPassport({ pokemon }: { pokemon: Pokemon }) {
+  const passport = usePassportLink();
   const { colors } = useTheme(), router = useRouter(), { height } = useWindowDimensions(),
     [transfer, setTransfer] = useState(false), awards = displayedAwards(pokemon),
     [page, setPage] = useState(0), [selected, setSelected] = useState(''),
@@ -38,9 +40,7 @@ export function ClassicPassport({ pokemon }: { pokemon: Pokemon }) {
       });
     });
   };
-  const open = (tab = 'overview') => router.push({
-    pathname: '/passport/[id]', params: { id: pokemon.id, tab },
-  });
+  const open = (tab = 'overview') => router.push(passport(pokemon.id, tab));
   return (
     <View ref={panelRef} onLayout={(e) => setSize(e.nativeEvent.layout)} testID="classic-passport" style={{ backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 }}>
       <PixelText style={{ fontSize: 12, letterSpacing: 1.5, color: colors.muted, textAlign: 'center' }}>TRAINER'S PASSPORT</PixelText>
@@ -101,13 +101,10 @@ export function PokemonSummary({
   pokemon: Pokemon;
   full?: boolean;
 }) {
+  const passport = usePassportLink();
   const { colors } = useTheme(),
     router = useRouter(),
-    open = () =>
-      router.push({
-        pathname: '/passport/[id]',
-        params: { id: pokemon.id, tab: 'overview' },
-      });
+    open = () => router.push(passport(pokemon.id));
   return (
     <View
       style={{

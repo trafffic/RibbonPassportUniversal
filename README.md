@@ -26,6 +26,8 @@ Open http://127.0.0.1:8081. The development server is not the offline test targe
 
 ## Try the app
 
+Passport URLs use a stable seven-character alias instead of the full internal Pokémon ID, and omit the default Overview query parameter. Existing full-ID links still open the same local record and redirect to its short URL. These links refer to this browser's collection; they do not publish Pokémon or their notes.
+
 1. A fresh install starts empty, like the iPhone app: **Add Pokémon**, **Import ribbons.guide backup** or **Try demo** (Competitive offers **Add manually**, **Import Showdown team** and **Community teams**). Try demo adds six authored Pokémon and a Demo Ribbon Team; existing collections are never replaced on update. Select a Pokémon in **Box 01**. On desktop, click its **Passport preview** to enter Passport Studio; phones use the **Passport** action under the PC. The original sprites fit both dimensions of their frames.
 2. Use **Overview**, **Ribbons** and **Journey**. Ribbons has the original game, earnable-only, last-chance/later-generation and paging controls, with original Memory Ribbon records available. For Gardevoir, record Alert Ribbon in Alpha Sapphire and use **Undo last change**.
 3. **Journey** contains Games/Generations stamps, edit visits, Milestones, Memories (including photos), Move Dex notes, and Field guides. Dates are optional or valid YYYY-MM-DD values; notes do not alter ribbon eligibility.

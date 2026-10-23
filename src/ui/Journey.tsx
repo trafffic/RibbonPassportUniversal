@@ -14,6 +14,7 @@ import { useTheme } from './theme';
 import { Art, Button, GameLabel, PixelText } from './primitives';
 import { roman } from './PassportPanels';
 import { gameColour } from '../domain/game-colours';
+import { usePassportLink } from './usePassportLink';
 export function Journey({
   pokemon: p,
   compact = false,
@@ -21,6 +22,7 @@ export function Journey({
   pokemon: Pokemon;
   compact?: boolean;
 }) {
+  const passport = usePassportLink();
   const { colors, ui, dark } = useTheme(),
     router = useRouter(),
     visits = recordedVisits(p);
@@ -199,10 +201,7 @@ export function Journey({
       {compact ? (
         <Button
           onPress={() =>
-            router.push({
-              pathname: '/passport/[id]',
-              params: { id: p.id, tab: 'journey' },
-            })
+            router.push(passport(p.id, 'journey'))
           }
         >
           Journey ›

@@ -55,7 +55,7 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
     page,
     width >= 980 ? 'Open passport preview' : 'Open passport',
   ).click();
-  await expect(page).toHaveURL(new RegExp(passport));
+  await expect(page).toHaveURL(/\/passport\/[a-z0-9]{7}$/);
   await record(page, 'Alert Ribbon');
   await expect(
     page

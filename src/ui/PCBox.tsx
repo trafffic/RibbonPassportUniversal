@@ -12,6 +12,7 @@ import {
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../state/CollectionProvider';
+import { usePassportLink } from './usePassportLink';
 import { displayName, displayedAwards, gameName } from '../domain/catalog';
 import type { Pokemon } from '../domain/model';
 import { createBox, ribbonMastersGuide } from '../domain/organisation';
@@ -66,6 +67,7 @@ export function PCBox({
   classic?: boolean;
   followPassport?: boolean;
 }) {
+  const passport = usePassportLink();
   const state = useCollection(),
     router = useRouter(),
     { width, height } = useWindowDimensions(),
@@ -268,10 +270,9 @@ export function PCBox({
   }, [hoveredPage, !!drag]);
   const open = (tab = 'overview') => {
     if (p)
-      router.push({
-        pathname: kind === 'showdown' ? '/build/[id]' : '/passport/[id]',
-        params: { id: p.id, tab },
-      } as never);
+      router.push(kind === 'showdown'
+        ? { pathname: '/build/[id]', params: { id: p.id, tab } }
+        : passport(p.id, tab));
   };
   const addBox = async () => {
     const id = Crypto.randomUUID(),
@@ -290,7 +291,7 @@ export function PCBox({
     } else if (id) {
       await state.select(id);
       if (compact || followPassport)
-        router.replace({ pathname: '/passport/[id]', params: { id } });
+        router.replace(passport(id));
     }
   };
   const startAdd = async () => {
@@ -338,7 +339,7 @@ export function PCBox({
                   setMoving('');
               } else if (id) {
                 await state.select(id);
-                if (followPassport) router.replace({ pathname: '/passport/[id]', params: { id } });
+                if (followPassport) router.replace(passport(id));
               }
             }}
             style={{

@@ -40,7 +40,7 @@ test('Classic PC makes storage prominent and shows the selected Pokémon’s las
   await button(page, 'Open passport preview').click();
   await expect(page.getByTestId('studio')).toBeVisible();
   await button(page, 'Select Gardevoir').click();
-  await expect(page).toHaveURL(/passport\/sample-collection-v1-pokemon-4/);
+  await expect(page).toHaveURL(/\/passport\/[a-z0-9]{7}$/);
 });
 
 test('desktop storage fits the viewport without stretching or scrolling, including laptop heights', async ({ page }) => {

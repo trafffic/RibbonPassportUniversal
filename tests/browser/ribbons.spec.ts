@@ -27,6 +27,46 @@ const unknownGame = JSON.stringify({
     selectedID: 'p1',
   },
 });
+
+test('size marks wait for a click or keyboard activation and can be recorded', async ({ page }) => {
+  const pokemon = [
+    { id: 'mini', species: 'pikachu', sizeScale: 0 },
+    { id: 'jumbo', species: 'pikachu', sizeScale: 255 },
+  ].map((p) => ({ ...p, ribbons: [], currentgame: 'scar', origingame: 'as', currentlevel: 100 }));
+  await page.goto('/');
+  await backups(page);
+  await importText(page, JSON.stringify({
+    format: 'ribbon-passport', version: 1,
+    collection: { pokemon, teams: [], selectedID: 'mini' },
+  }));
+
+  for (const [id, mark] of [['mini', 'Mini Mark'], ['jumbo', 'Jumbo Mark']]) {
+    await page.goto(`/passport/${id}`);
+    await passportTab(page, 'Ribbons').click();
+    await button(page, 'Size marks').click();
+    const choice = page.getByRole('dialog').getByRole('button', { name: `Details for ${mark}`, exact: true });
+    await expect(choice).toBeVisible();
+    if (!test.info().project.use.hasTouch) {
+      await choice.hover();
+      await expect(button(page, `Record ${mark}`)).toHaveCount(0);
+      await expect(choice).toBeVisible();
+    }
+    if (id === 'jumbo' && !test.info().project.use.hasTouch) {
+      await choice.focus();
+      await page.keyboard.press('Enter');
+    } else await choice.click();
+    await button(page, 'Scarlet').click();
+    await button(page, `Record ${mark}`).click();
+    await expect(button(page, 'Owned (1)')).toBeVisible();
+    await page.reload();
+    await passportTab(page, 'Ribbons').click();
+    await button(page, 'Owned (1)').click();
+    await button(page, `Details for ${mark}`).click();
+    await expect(page.getByText('Earned in: Scarlet', { exact: true })).toBeVisible();
+    await button(page, `Remove ${mark}`).click();
+    await expect(button(page, 'Owned (0)')).toBeVisible();
+  }
+});
 test('ribbon page size cycles 12, 24, 6 like the iPhone app and persists after reload', async ({
   page,
 }) => {

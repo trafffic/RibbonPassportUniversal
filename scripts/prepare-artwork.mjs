@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { PNG } from 'pngjs';
+import { chromium } from '@playwright/test';
 await fs.mkdir('assets/prepared', { recursive: true });
 function prepare(bytes, factor) {
   const input = PNG.sync.read(bytes);
@@ -30,6 +31,20 @@ for (const file of await fs.readdir('assets/art')) {
   await fs.writeFile(path.join('assets/prepared', file), prepare(bytes, factor));
   manifest[key] = `../../assets/prepared/${file}`;
   if (key.startsWith('sprite-')) provenance.push({ key, source: source.replaceAll('\\', '/'), ...(additions[key]?{upstream:additions[key].url}:{}), sha256: crypto.createHash('sha256').update(bytes).digest('hex'), scale: factor });
+}
+// Rasterize the outlined console vectors with alpha intact for all platforms.
+const browser = await chromium.launch({ headless: true });
+try {
+  const page = await browser.newPage({ viewport: { width: 256, height: 256 } });
+  for (const mode of ['light', 'dark']) {
+    const key = `console-3ds-${mode}`;
+    const svg = await fs.readFile(`assets/art/${key}.svg`, 'utf8');
+    await page.setContent(`<style>html,body{margin:0;background:transparent}svg{width:256px;height:256px;display:block}</style>${svg}`);
+    await page.screenshot({ path: `assets/prepared/${key}.png`, omitBackground: true });
+    manifest[key] = `../../assets/prepared/${key}.png`;
+  }
+} finally {
+  await browser.close();
 }
 for (const file of await fs.readdir('assets/wallpapers')) {
   if (!/^sm-\d\d\.png$/.test(file)) continue;

@@ -4,6 +4,7 @@ import { View, TextInput } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../state/CollectionProvider';
+import { passportLink } from '../navigation/passport';
 import { patchPassport, updateMetadata } from '../domain/passport';
 import {
   applyTeamVersion,
@@ -273,10 +274,9 @@ export function PersonalTeam({ id }: { id: string }) {
           )}
           <Button
             onPress={() =>
-              router.push({
-                pathname: p.showdownSet ? '/build/[id]' : '/passport/[id]',
-                params: { id: p.id },
-              } as never)
+              router.push(p.showdownSet
+                ? { pathname: '/build/[id]', params: { id: p.id } }
+                : passportLink(p.id, state.collection!.records))
             }
           >
             {p.showdownSet ? 'Open build' : 'Open passport'}

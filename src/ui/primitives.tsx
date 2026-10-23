@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image as ArtworkImage } from 'expo-image';
 import {
   Image,
   Pressable,
@@ -187,13 +188,13 @@ export function Art({
         flexShrink: 0,
       }}
     >
-      <Image
+      <ArtworkImage
         source={source}
         accessibilityLabel={label}
         accessible={!!label}
-        resizeMode="contain"
-        fadeDuration={0}
-        style={{ width: size * scale, height: size * scale }}
+        contentFit="contain"
+        transition={0}
+        style={{ width: size * scale, height: size * scale, backgroundColor: 'transparent' }}
       />
     </View>
   );

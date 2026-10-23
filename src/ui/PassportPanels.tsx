@@ -113,15 +113,18 @@ export function AwardGrid({
   onSelect,
   selected,
   onDismiss,
+  hoverPreview = false,
 }: {
   ids: string[];
   onSelect(id: string, anchor?: Rect): void;
   selected?: string;
   onDismiss?(): void;
+  /** Only overview descriptions open on hover; pickers require activation. */
+  hoverPreview?: boolean;
 }) {
   const { width } = useWindowDimensions(),
     rects = useRef<Record<string, Rect>>({});
-  const hoverOnly = Platform.OS === 'web' && width >= 1100;
+  const hoverOnly = hoverPreview && Platform.OS === 'web' && width >= 1100;
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
       {ids.map((id) => (
@@ -390,6 +393,7 @@ export function PassportOverview({ pokemon: p }: { pokemon: Pokemon }) {
         }
       >
         <AwardGrid
+          hoverPreview
           ids={displayedAwards(p).slice(0, 12)}
           selected={selected}
           onDismiss={closeLater}

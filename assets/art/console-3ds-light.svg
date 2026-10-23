@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Outline variant of the credited 3DS silhouette; screen interiors stay transparent. -->
+  <g stroke="#587389" stroke-width="4" fill="none" stroke-linejoin="round">
+    <rect x="3" y="2" width="58" height="60" rx="5"/>
+    <path d="M3 32h58"/>
+    <rect x="17" y="10" width="29" height="16" rx="1"/>
+    <rect x="21" y="39" width="21" height="15" rx="1"/>
+  </g>
+  <g fill="#587389">
+    <circle cx="10" cy="44" r="4"/>
+    <circle cx="51" cy="40" r="1.7"/><circle cx="56" cy="45" r="1.7"/>
+    <circle cx="51" cy="50" r="1.7"/><circle cx="46" cy="45" r="1.7"/>
+  </g>
+</svg>
