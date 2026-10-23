@@ -119,3 +119,26 @@ test('tile status reports owned, last chance and the quick action', () => {
   const far = tileStatus(p, 'alert-ribbon', 'emerald', { owned: false, lastChance: false });
   assert.notEqual(far.action, 'remove');
 });
+
+import { editPokemon } from '../src/domain/organisation';
+test('ball, language and original trainer survive import, edit and export', () => {
+  const c = importBackup(
+    backup({ ball: 'great', language: 'en', trainername: 'Ash' }),
+    'i',
+    'r',
+  );
+  const p = c.records[0]!.pokemon;
+  assert.equal(p.language, 'en');
+  assert.equal(p.trainername, 'Ash');
+  const next = editPokemon(
+    c,
+    'p1',
+    { ...p, language: 'ja', trainername: undefined },
+    c.records[0]!.version.revision,
+    stamp('edit'),
+  );
+  const out = JSON.parse(exportSource(next)).collection.pokemon[0];
+  assert.equal(out.language, 'ja');
+  assert.equal(out.ball, 'great');
+  assert.equal('trainername' in out, false);
+});

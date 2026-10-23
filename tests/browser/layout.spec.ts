@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { demo } from './helpers';
+import { button, demo } from './helpers';
 
 const routes = ['/', '/competitive', '/settings', '/teams', '/guides', '/library'];
 
@@ -15,11 +15,18 @@ test('no screen scrolls sideways at any tested width', async ({ page }) => {
   }
 });
 
-test('Competitive shows a build preview beside the box on wide screens only', async ({
+test('Competitive opens in the studio on wide screens only', async ({
   page,
 }, info) => {
-  await demo(page, '/competitive');
-  const preview = page.getByText('BUILD PREVIEW');
+  await demo(page, '/import-showdown');
+  await page.getByRole('textbox', { name: 'Team name', exact: true }).fill('Duo');
+  await page
+    .getByRole('textbox', { name: 'Showdown export' })
+    .fill('Garchomp @ Choice Scarf\nAbility: Rough Skin\nLevel: 50\n- Earthquake');
+  await button(page, 'Import team').click();
+  await expect(page.getByText('Default team ✓')).toBeVisible();
+  await page.goto('/competitive');
+  const preview = page.getByTestId('studio');
   const wide = (page.viewportSize()?.width ?? 0) >= 1100;
   if (wide) await expect(preview).toBeVisible();
   else await expect(preview).toHaveCount(0);

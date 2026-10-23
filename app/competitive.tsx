@@ -1,42 +1,17 @@
-import React from "react";
-import { View } from "react-native";
-import { useCollection } from "../src/state/CollectionProvider";
-import { Shell } from "../src/ui/Shell";
-import { PCBox } from "../src/ui/PCBox";
-import { BuildSummary } from "../src/ui/BuildSummary";
-import { useLayout } from "../src/ui/layout";
+import React from 'react';
+import { Shell } from '../src/ui/Shell';
+import { PCBox } from '../src/ui/PCBox';
+import { CompetitiveStudio } from '../src/ui/Studio';
+import { useLayout } from '../src/ui/layout';
+import { useCollection } from '../src/state/CollectionProvider';
 export default function Competitive() {
-  const { collection } = useCollection(),
-    { isDesktop } = useLayout();
-  const p =
-    collection?.records.find(
-      (r) => r.id === collection.selectedID && r.pokemon.showdownSet,
-    )?.pokemon ??
-    collection?.records.find((r) => r.pokemon.showdownSet)?.pokemon;
+  const { isDesktop } = useLayout(),
+    { collection } = useCollection();
+  const studio =
+    isDesktop && !!collection?.records.some((r) => r.pokemon.showdownSet);
   return (
-    <Shell>
-      <View
-        style={{
-          flexDirection: isDesktop ? "row" : "column",
-          gap: 24,
-          alignItems: "flex-start",
-        }}
-      >
-        <View
-          style={{
-            flex: isDesktop ? 1.42 : undefined,
-            width: isDesktop ? undefined : "100%",
-            minWidth: 0,
-          }}
-        >
-          <PCBox kind="showdown" />
-        </View>
-        {isDesktop && (
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <BuildSummary pokemon={p} teams={collection?.teams ?? []} />
-          </View>
-        )}
-      </View>
+    <Shell studio>
+      {studio ? <CompetitiveStudio /> : <PCBox kind="showdown" />}
     </Shell>
   );
 }

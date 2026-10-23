@@ -12,12 +12,20 @@
       "bundleIdentifier": "ie.ribbonpassport.universal"
     },
     "android": {
-      "package": "ie.ribbonpassport.universal"
+      "package": "ie.ribbonpassport.universal",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#270641"
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/icon.png",
+      "name": "Ribbon Passport",
+      "shortName": "Ribbons",
+      "themeColor": "#1E2C1F",
+      "backgroundColor": "#1E2C1F"
     },
     "plugins": [
       "expo-router",

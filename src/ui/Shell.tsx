@@ -9,7 +9,12 @@ import { TerminalGlyph } from "./TerminalGlyph";
 export function Shell({
   children,
   narrow = false,
-}: React.PropsWithChildren<{ narrow?: boolean }>) {
+  studio = false,
+}: React.PropsWithChildren<{
+  narrow?: boolean;
+  /** Desktop studio: panes fill the window and scroll on their own. */
+  studio?: boolean;
+}>) {
   const router = useRouter(),
     path = usePathname(),
     params = useLocalSearchParams<{ kind: string; id: string }>(),
@@ -112,6 +117,48 @@ export function Shell({
       ))}
     </View>
   );
+  const fill = studio && width >= 1100;
+  const alerts = (
+    <>
+      {!!state.error && (
+        <Panel style={{ backgroundColor: colors.warning }}>
+          <PixelText
+            accessibilityRole="alert"
+            style={{ color: colors.warningInk }}
+          >
+            {state.error}
+          </PixelText>
+          {state.collection && !state.conflict && (
+            <Button onPress={state.dismissError}>Dismiss</Button>
+          )}
+        </Panel>
+      )}
+      {state.conflict && (
+        <Panel>
+          <PixelText style={ui.heading}>Choose a saved version</PixelText>
+          <PixelText>
+            Another window edited this collection. Both versions are preserved.
+          </PixelText>
+          <View style={ui.row}>
+            <Button
+              disabled={state.busy}
+              onPress={() => state.resolveConflict("ours")}
+            >
+              Keep this window’s version
+            </Button>
+            <Button
+              disabled={state.busy}
+              onPress={() => state.resolveConflict("theirs")}
+            >
+              Keep other window’s version
+            </Button>
+          </View>
+          <BackupPanel onClose={() => {}} />
+        </Panel>
+      )}
+    </>
+  );
+  const loading = !state.error && <LoadingSkeleton />;
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
       {!phone && (
@@ -120,125 +167,178 @@ export function Shell({
             style={[
               ui.between,
               {
-                maxWidth: width >= 1440 ? 1440 : 1320,
+                maxWidth: fill ? 1600 : width >= 1440 ? 1440 : 1320,
                 width: "100%",
                 alignSelf: "center",
-                paddingHorizontal: 24,
-                paddingVertical: 16,
+                paddingHorizontal: fill ? 16 : 24,
+                paddingVertical: fill ? 8 : 16,
               },
             ]}
           >
             <View style={ui.row}>
-              <Art name="award-earth-ribbon" size={30} />
-              <PixelText style={{ fontSize: 24 }}>RIBBON PASSPORT</PixelText>
+              <Art name="award-earth-ribbon" size={fill ? 24 : 30} />
+              <PixelText style={{ fontSize: fill ? 20 : 24 }}>
+                RIBBON PASSPORT
+              </PixelText>
             </View>
             {dock}
           </View>
         </View>
       )}
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
+      {fill ? (
         <View
           style={{
-            maxWidth: narrow && width >= 1100 ? 960 : width >= 1440 ? 1440 : 1320,
+            flex: 1,
+            minHeight: 0,
+            maxWidth: 1600,
             width: "100%",
             alignSelf: "center",
-            padding: phone ? 16 : 24,
-            gap: 18,
-            flexGrow: 1,
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            gap: 12,
           }}
         >
-          {!!state.error && (
-            <Panel style={{ backgroundColor: colors.warning }}>
-              <PixelText
-                accessibilityRole="alert"
-                style={{ color: colors.warningInk }}
-              >
-                {state.error}
-              </PixelText>
-              {state.collection && !state.conflict && (
-                <Button onPress={state.dismissError}>Dismiss</Button>
-              )}
-            </Panel>
-          )}
-          {state.conflict && (
-            <Panel>
-              <PixelText style={ui.heading}>Choose a saved version</PixelText>
-              <PixelText>
-                Another window edited this collection. Both versions are
-                preserved.
-              </PixelText>
-              <View style={ui.row}>
-                <Button
-                  disabled={state.busy}
-                  onPress={() => state.resolveConflict("ours")}
-                >
-                  Keep this window’s version
-                </Button>
-                <Button
-                  disabled={state.busy}
-                  onPress={() => state.resolveConflict("theirs")}
-                >
-                  Keep other window’s version
-                </Button>
-              </View>
-              <BackupPanel onClose={() => {}} />
-            </Panel>
-          )}
-          {state.collection
-            ? children
-            : !state.error && <PixelText>Opening your collection…</PixelText>}
-          {!phone && (
-            <View
-              style={[
-                ui.between,
-                {
-                  marginTop: 16,
-                  paddingTop: 16,
-                  borderTopWidth: 1,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <PixelText style={ui.label}>Saved on this device · Export backup in Settings</PixelText>
-              <View style={ui.row}>
-                <Button onPress={() => router.push("/library")}>
-                  Team library
-                </Button>
-                <Button onPress={() => router.push("/guides")}>
-                  Field guides
-                </Button>
-              </View>
-            </View>
+          {alerts}
+          {state.collection ? (
+            <View style={{ flex: 1, minHeight: 0 }}>{children}</View>
+          ) : (
+            loading
           )}
         </View>
-      </ScrollView>
-      {(!!state.notice || state.canUndo) && (
-        <View
-          accessibilityLiveRegion="polite"
-          style={[
-            ui.between,
-            {
-              padding: 12,
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.panel,
-            },
-          ]}
+      ) : (
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
         >
-          <PixelText style={{ fontSize: 14, flex: 1 }}>
-            {state.notice || "Your last change can be undone."}
-          </PixelText>
-          {state.canUndo && (
-            <Button disabled={state.busy} onPress={state.undo}>
-              Undo last change
-            </Button>
-          )}
+          <View
+            style={{
+              maxWidth:
+                narrow && width >= 1100 ? 960 : width >= 1440 ? 1440 : 1320,
+              width: "100%",
+              alignSelf: "center",
+              padding: phone ? 16 : 24,
+              gap: 18,
+              flexGrow: 1,
+            }}
+          >
+            {alerts}
+            {state.collection ? children : loading}
+          </View>
+        </ScrollView>
+      )}
+      {phone ? (
+        (!!state.notice || state.canUndo) && (
+          <View
+            accessibilityLiveRegion="polite"
+            style={[
+              ui.between,
+              {
+                padding: 12,
+                borderTopWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.panel,
+              },
+            ]}
+          >
+            <PixelText style={{ fontSize: 14, flex: 1 }}>
+              {state.notice || "You can undo your last change."}
+            </PixelText>
+            {state.canUndo && (
+              <Button disabled={state.busy} onPress={state.undo}>
+                Undo last change
+              </Button>
+            )}
+          </View>
+        )
+      ) : (
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.panel,
+          }}
+        >
+          <View
+            accessibilityLiveRegion="polite"
+            style={{
+              maxWidth: fill ? 1600 : width >= 1440 ? 1440 : 1320,
+              width: "100%",
+              alignSelf: "center",
+              paddingHorizontal: fill ? 16 : 24,
+              paddingVertical: 6,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 16,
+              minHeight: 44,
+            }}
+          >
+            <PixelText style={{ fontSize: 12, color: colors.accent }}>
+              ● Saved on this device
+            </PixelText>
+            <PixelText numberOfLines={1} style={{ fontSize: 12, flex: 1 }}>
+              {state.notice}
+            </PixelText>
+            {state.canUndo && (
+              <Button disabled={state.busy} onPress={state.undo}>
+                Undo last change
+              </Button>
+            )}
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Export backup"
+              onPress={() => router.push("/settings")}
+            >
+              <PixelText style={{ fontSize: 12, color: colors.muted }}>
+                Export backup ›
+              </PixelText>
+            </Pressable>
+          </View>
         </View>
       )}
       {phone && dock}
+    </View>
+  );
+}
+/** Placeholder while the collection opens: a muted PC grid and preview card. */
+function LoadingSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View
+      accessibilityLabel="Opening your collection"
+      accessibilityRole="progressbar"
+      style={{ flexDirection: "row", flexWrap: "wrap", gap: 24 }}
+    >
+      <View
+        style={{
+          flexGrow: 1.4,
+          flexBasis: 300,
+          aspectRatio: 208 / 192,
+          maxWidth: 820,
+          backgroundColor: colors.panel,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: "4%",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignContent: "flex-end",
+        }}
+      >
+        {Array.from({ length: 30 }, (_, i) => (
+          <View key={i} style={{ width: "16.66%", height: "16%", padding: 3 }}>
+            <View style={{ flex: 1, backgroundColor: colors.board }} />
+          </View>
+        ))}
+      </View>
+      <View
+        style={{
+          flexGrow: 1,
+          flexBasis: 260,
+          height: 220,
+          backgroundColor: colors.panel,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      />
     </View>
   );
 }

@@ -155,3 +155,10 @@ test('saved builds round-trip through the original format keeping unknown fields
     .pokemon.savedBuilds!;
   assert.deepEqual(universal, c.records[0]!.pokemon.savedBuilds);
 });
+
+import { statValues } from '../src/domain/showdown';
+test('stat spreads parse like the iPhone ShowdownStats', () => {
+  assert.deepEqual(statValues('252 Atk / 4 HP / 252 Spe', 0), [4, 252, 0, 0, 0, 252]);
+  assert.deepEqual(statValues('', 31), [31, 31, 31, 31, 31, 31]);
+  assert.deepEqual(statValues('0 Atk / junk', 31), [31, 0, 31, 31, 31, 31]);
+});

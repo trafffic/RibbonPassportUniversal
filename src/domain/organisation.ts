@@ -16,6 +16,9 @@ export const editableFields = [
   'gmax',
   'title',
   'titleText',
+  'ball',
+  'language',
+  'trainername',
 ] as const;
 export type PokemonDetails = Pick<Pokemon, (typeof editableFields)[number]>;
 export function emptyCollection(

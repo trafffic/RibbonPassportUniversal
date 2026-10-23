@@ -23,7 +23,8 @@ export function resolveSprite(url: string): Promise<string> {
       return URL.createObjectURL(await res.blob());
     })();
     live.set(url, job);
-    job.catch(() => live.delete(url));
+    // Remember a miss for a minute so every sprite on screen doesn't refetch it.
+    job.catch(() => setTimeout(() => live.delete(url), 60_000));
   }
   return job;
 }

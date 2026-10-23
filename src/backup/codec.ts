@@ -227,6 +227,10 @@ function normalize(entry: Obj, id: string): Pokemon {
     metLevel: numeric(entry.metLevel ?? entry.metlevel),
     sizeScale: numeric(entry.sizeScale ?? entry.scale),
     ball: typeof entry.ball === 'string' ? entry.ball : undefined,
+    ...(typeof entry.language === 'string' ? { language: entry.language } : {}),
+    ...(typeof entry.trainername === 'string'
+      ? { trainername: entry.trainername }
+      : {}),
     ...(typeof entry.source === 'string' ? { source: entry.source } : {}),
     ...(object(entry.showdownSet)
       ? { showdownSet: showdownProjection(entry.showdownSet) }
@@ -779,6 +783,11 @@ export function exportSource(collection: Collection): string {
         entry.shiny = val ? 'star' : '';
       else if (key === 'currentlevel' && typeof entry.currentlevel === 'string')
         entry.currentlevel = String(val);
+      else if (
+        val === null &&
+        (key === 'ball' || key === 'language' || key === 'trainername')
+      )
+        delete entry[key];
       else if (val === null && (key === 'metLevel' || key === 'sizeScale')) {
         delete entry[key];
         delete entry[key === 'metLevel' ? 'metlevel' : 'scale'];

@@ -19,14 +19,26 @@ import { displayName, spriteKey, gameName } from '../domain/catalog';
 import type { Pokemon } from '../domain/model';
 import { gameColour } from '../domain/game-colours';
 import { clampInt, isoToday } from './form-logic';
+import { DatePickerField } from './DatePickerField';
 import { useLayout } from './layout';
+import { useDensity } from './density';
 import { spriteSources } from '../domain/sprite-sources';
 import { resolveSprite } from './sprite-cache';
 import { consoleKey, itemKey, tintHex } from '../domain/art-ui';
 export function PixelText({ style, ...props }: TextProps) {
-  const { colors, ui, dark } = useTheme();
+  const { colors } = useTheme();
+  const density = useDensity();
+  const flat = density === 1 ? undefined : StyleSheet.flatten(style);
   return (
-    <Text {...props} style={[styles.text, { color: colors.ink }, style]} />
+    <Text
+      {...props}
+      style={[
+        styles.text,
+        { color: colors.ink },
+        style,
+        flat && { fontSize: (flat.fontSize ?? 18) * density },
+      ]}
+    />
   );
 }
 export function Button({
@@ -48,6 +60,7 @@ export function Button({
 }) {
   const { colors, ui, dark } = useTheme();
   const { isTablet } = useLayout();
+  const density = useDensity();
   return (
     <Pressable
       testID={testID}
@@ -60,6 +73,11 @@ export function Button({
       onPress={onPress}
       style={({ pressed, hovered, focused }: any) => [
         styles.button,
+        density !== 1 && {
+          minHeight: 46 * density,
+          paddingVertical: 11 * density,
+          paddingHorizontal: 16 * density,
+        },
         // Wide screens: size to content instead of stretching across the column.
         isTablet && { alignSelf: 'flex-start' as const },
         Platform.OS === 'web' && ({ cursor: disabled ? 'default' : 'pointer' } as any),
@@ -316,7 +334,7 @@ export function NumberStepper({
   React.useEffect(() => setText(String(value)), [value]);
   const step = (d: number) => onChange(clampInt(value + d, min, max));
   return (
-    <View style={[ui.between, { gap: 8, flexGrow: 1, flexBasis: 220 }]}>
+    <View style={[ui.between, { gap: 8 }]}>
       <PixelText style={{ fontSize: 15, flex: 1 }}>{label}</PixelText>
       <Button
         label={`Decrease ${label}`}
@@ -372,6 +390,50 @@ export function KeyboardDoneBar() {
     </InputAccessoryView>
   );
 }
+/** The iPhone TerminalToggleStyle: label on the left, an ON/OFF box on the right. */
+export function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange(v: boolean): void;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value }}
+      onPress={() => onChange(!value)}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        minHeight: 36,
+      }}
+    >
+      <PixelText style={{ flex: 1 }}>{label}</PixelText>
+      <View
+        style={{
+          width: 44,
+          height: 28,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: colors.muted,
+          backgroundColor: value ? '#718F4E' : colors.board,
+        }}
+      >
+        <PixelText style={{ fontSize: 12, color: value ? '#FFFFFF' : colors.ink }}>
+          {value ? 'ON' : 'OFF'}
+        </PixelText>
+      </View>
+    </Pressable>
+  );
+}
+/** The iPhone "Date known" toggle with a date picker once it is on. */
 export function DateKnownField({
   value,
   onChange,
@@ -379,34 +441,15 @@ export function DateKnownField({
   value: string;
   onChange(v: string): void;
 }) {
-  const { ui } = useTheme();
-  const [known, setKnown] = React.useState(value !== '');
+  const known = value !== '';
   return (
     <View style={{ gap: 8 }}>
-      <Button
-        primary={known}
-        onPress={() => {
-          setKnown(!known);
-          onChange(known ? '' : isoToday());
-        }}
-      >
-        {known ? 'Date known ✓' : 'Date known'}
-      </Button>
-      {known && (
-        <View style={{ gap: 7 }}>
-          <PixelText style={ui.label}>DATE (YYYY-MM-DD)</PixelText>
-          <TextInput
-            accessibilityLabel="Date (YYYY-MM-DD)"
-            value={value}
-            onChangeText={(t) => onChange(t.trim())}
-            inputAccessoryViewID={DONE_BAR}
-            style={ui.input}
-            keyboardType="numbers-and-punctuation"
-            maxLength={10}
-            autoCapitalize="none"
-          />
-        </View>
-      )}
+      <Toggle
+        label="Date known"
+        value={known}
+        onChange={(on) => onChange(on ? isoToday() : '')}
+      />
+      {known && <DatePickerField value={value} onChange={onChange} />}
     </View>
   );
 }

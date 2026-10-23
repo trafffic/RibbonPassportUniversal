@@ -22,8 +22,17 @@ import {
   exportShowdown,
   parseShowdown,
   importShowdownTeam,
+  statLabels,
+  statValues,
 } from '../domain/showdown';
-import { displayName, gameName, sortGames, ruleData } from '../domain/catalog';
+import {
+  catalog,
+  displayName,
+  gameName,
+  sortGames,
+  ruleData,
+} from '../domain/catalog';
+const speciesName = (id: string) => catalog.pokemon[id]?.name ?? id;
 import {
   applyBuildVersion,
   diffBuild,
@@ -456,9 +465,15 @@ function TeamVersionNotes({
     </EditorSheet>
   );
 }
-export function Build({ id }: { id: string }) {
+export function Build({
+  id,
+  embedded = false,
+}: {
+  id: string;
+  embedded?: boolean;
+}) {
   const state = useCollection(),
-    { ui } = useTheme(),
+    { ui, colors } = useTheme(),
     r = state.collection?.records.find((r) => r.id === id),
     [editing, setEditing] = useState(false),
     [error, setError] = useState('');
@@ -469,36 +484,104 @@ export function Build({ id }: { id: string }) {
     return <PixelText>No battle build recorded for this Pokémon.</PixelText>;
   return (
     <View style={{ gap: 18 }}>
-      <PageHeading title="Build" back="/competitive" />
-      <View style={ui.row}>
-        <Sprite pokemon={p} size={70} />
-        <View>
-          <PixelText style={ui.heading}>{displayName(p)}</PixelText>
-          <PixelText>Lv. {p.currentlevel}</PixelText>
+      {!embedded && <PageHeading title="Build" back="/competitive" />}
+      <Panel style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Sprite pokemon={p} width={104} height={100} />
+        <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+          <PixelText style={{ fontSize: 27 }}>{displayName(p)}</PixelText>
+          <PixelText style={{ fontSize: 13, color: colors.muted }}>
+            {`${speciesName(p.species)} · Lv. ${p.currentlevel}`}
+          </PixelText>
+          <HeldItem item={b.item} size={16} />
         </View>
+      </Panel>
+      <Panel style={{ gap: 10 }}>
+        {(
+          [
+            ['Ability', b.ability],
+            ['Nature', b.nature],
+            ['Tera type', b.teraType],
+          ] as const
+        ).map(([key, val], i) => (
+          <View
+            key={key}
+            style={[
+              ui.between,
+              i > 0 && {
+                borderTopWidth: 1,
+                borderColor: colors.border,
+                paddingTop: 10,
+              },
+            ]}
+          >
+            <PixelText style={{ fontSize: 13, color: colors.muted }}>
+              {key}
+            </PixelText>
+            <PixelText style={{ fontSize: 17 }}>{val || 'Not set'}</PixelText>
+          </View>
+        ))}
+      </Panel>
+      <View style={ui.between}>
+        <PixelText style={ui.heading}>Moves</PixelText>
+        <PixelText style={{ color: colors.muted }}>
+          {`${b.moves.length} / 4`}
+        </PixelText>
       </View>
-      <GameLabel game={p.currentgame} />
-      {[
-        ['Item', b.item],
-        ['Ability', b.ability],
-        ['Nature', b.nature],
-        ['Tera type', b.teraType],
-        ['EVs', b.evs],
-        ['IVs', b.ivs],
-      ].map(([key, val]) => (
-        <Panel key={key}>
-          <PixelText style={ui.label}>{key}</PixelText>
-          {key === 'Item' ? (
-            <HeldItem item={val} size={18} />
-          ) : (
-            <PixelText>{val || 'Not set'}</PixelText>
-          )}
-        </Panel>
-      ))}
-      <PixelText style={ui.heading}>Moves</PixelText>
-      {b.moves.map((move, i) => (
-        <PixelText key={i}>{move}</PixelText>
-      ))}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {b.moves.map((move, i) => (
+          <Panel
+            key={i}
+            style={{
+              flexBasis: '45%',
+              flexGrow: 1,
+              minHeight: 44,
+              padding: 9,
+              justifyContent: 'center',
+            }}
+          >
+            <PixelText style={{ fontSize: 16 }}>{move}</PixelText>
+          </Panel>
+        ))}
+      </View>
+      <PixelText style={ui.heading}>Stats</PixelText>
+      <Panel style={{ padding: 0, gap: 0 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            padding: 8,
+            backgroundColor: colors.board,
+          }}
+        >
+          <View style={{ flex: 1 }} />
+          {['EV', 'IV'].map((h) => (
+            <PixelText
+              key={h}
+              style={{ width: 44, fontSize: 13, color: colors.muted, textAlign: 'center' }}
+            >
+              {h}
+            </PixelText>
+          ))}
+        </View>
+        {statLabels.map((label, i) => (
+          <View
+            key={label}
+            style={{
+              flexDirection: 'row',
+              padding: 9,
+              borderTopWidth: i ? 1 : 0,
+              borderColor: colors.border,
+            }}
+          >
+            <PixelText style={{ flex: 1, fontSize: 16 }}>{label}</PixelText>
+            <PixelText style={{ width: 44, fontSize: 16, textAlign: 'center' }}>
+              {statValues(b.evs, 0)[i]}
+            </PixelText>
+            <PixelText style={{ width: 44, fontSize: 16, textAlign: 'center' }}>
+              {statValues(b.ivs, 31)[i]}
+            </PixelText>
+          </View>
+        ))}
+      </Panel>
       <View style={ui.row}>
         <Button onPress={() => setEditing(true)}>Edit build</Button>
         <Button

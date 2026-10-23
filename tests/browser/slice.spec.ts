@@ -47,13 +47,17 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
     path: info.outputPath('classic-pc.png'),
     fullPage: true,
   });
-  await button(
-    page,
-    page.viewportSize()!.width >= 980
-      ? 'Open passport preview'
-      : 'Open passport',
-  ).click();
-  await expect(page).toHaveURL(new RegExp(passport));
+  const width = page.viewportSize()!.width;
+  if (width >= 1100) {
+    // The desktop studio shows the selected Pokémon's passport in place.
+    await expect(page.getByTestId('studio')).toBeVisible();
+  } else {
+    await button(
+      page,
+      width >= 980 ? 'Open passport preview' : 'Open passport',
+    ).click();
+    await expect(page).toHaveURL(new RegExp(passport));
+  }
   await record(page, 'Alert Ribbon');
   await expect(
     page
@@ -68,7 +72,9 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
   ).toBeVisible();
   await record(page, 'Alert Ribbon');
   await passportTab(page, 'Journey').click();
-  await expect(page.getByText('Stamp album', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Stamp album', { exact: true }).first(),
+  ).toBeVisible();
   await page.screenshot({
     path: info.outputPath('passport-studio.png'),
     fullPage: true,
@@ -77,7 +83,9 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
   await context.setOffline(true);
   await page.reload();
   await passportTab(page, 'Journey').click();
-  await expect(page.getByText('Stamp album', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Stamp album', { exact: true }).first(),
+  ).toBeVisible();
   await backups(page);
   const data = JSON.parse(await download(page, 'Export collection'));
   const p = data.collection.records.find(
