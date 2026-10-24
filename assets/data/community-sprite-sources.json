@@ -106,5 +106,13 @@
   "sprite-regular_latios": {
     "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/latios.png",
     "sha256": "57897fed26877b5d0b8fff2afc314f652e823885d6d5a71ab369179dee05d325"
+  },
+  "sprite-regular_jirachi": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/jirachi.png",
+    "sha256": "bc4600ab24122abdb72c0922fe175b648f5282e87ddcea55611f1222de3068c7"
+  },
+  "sprite-shiny_raichu-alola": {
+    "url": "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/shiny/raichu-alola.png",
+    "sha256": "559918c4e1d18606d41764199a3fd9dcfdb345b7a998755a1bb526a465adb4e5"
   }
 }

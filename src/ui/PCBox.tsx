@@ -20,7 +20,7 @@ import { deletePokemon } from '../domain/passport';
 import { exportRibbonsGuide } from '../backup/codec';
 import { saveBackup } from '../backup/files';
 import { loadPreference, savePreference } from '../state/preference';
-import { Art, Button, Panel, PixelText, Sprite } from './primitives';
+import { Art, Button, PixelText, Sprite } from './primitives';
 import {
   BoxEditor,
   EditorSheet,
@@ -33,6 +33,7 @@ import { ExportPokemon } from './ExportPokemon';
 import { pcMetrics as m, wallpapers } from './wallpapers';
 import { useTheme } from './theme';
 import { TerminalGlyph } from './TerminalGlyph';
+import { CollectionLanding } from './CollectionLanding';
 import {
   headerScale as scaleFor,
   hitTest,
@@ -364,6 +365,26 @@ export function PCBox({
       })}
     </View>
   );
+  if (!compact && !records.length) {
+    return (
+      <View style={{ flexGrow: 1 }}>
+        <CollectionLanding
+          kind={kind}
+          disabled={state.busy || !!state.conflict}
+          onAdd={startAdd}
+          onImport={() => kind === 'ribbon' ? setSheet('Backups') : router.push('/import-showdown')}
+          onDemo={() => state.tryDemo()}
+          onLibrary={() => router.push('/library')}
+        />
+        {sheet === 'add' && <PokemonEditor boxID={box.id} competitive={kind === 'showdown'} onClose={() => setSheet('')} />}
+        {sheet === 'Backups' && (
+          <EditorSheet title="Import / export" onClose={() => setSheet('')}>
+            <BackupPanel onClose={() => setSheet('')} />
+          </EditorSheet>
+        )}
+      </View>
+    );
+  }
   return (
     <View testID={classic ? 'classic-storage' : fit ? 'mobile-storage' : undefined} style={{ gap: fit ? 4 : classic ? 10 : 16, flex: classic || fit ? 1 : undefined, minHeight: 0 }}>
       {!compact && (
@@ -393,41 +414,6 @@ export function PCBox({
           </Pressable>
           </View>
         </View>
-      )}
-      {!compact && !records.length && (
-        <Panel>
-          <PixelText accessibilityRole="header" style={{ fontSize: 22 }}>
-            {kind === 'ribbon'
-              ? 'Start your ribbon journey'
-              : 'Build your first team'}
-          </PixelText>
-          {kind === 'ribbon' ? (
-            <>
-              <Button onPress={() => setSheet('Backups')}>
-                Import ribbons.guide backup
-              </Button>
-              <Button
-                disabled={state.busy}
-                primary
-                onPress={() => state.tryDemo()}
-              >
-                Try demo
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button onPress={() => router.push('/import-showdown')}>
-                Import Showdown team
-              </Button>
-              <Button onPress={() => router.push('/library')}>
-                Browse community teams
-              </Button>
-            </>
-          )}
-          <Button disabled={state.busy} onPress={startAdd}>
-            Add Pokémon
-          </Button>
-        </Panel>
       )}
       {!!exportError && (
         <PixelText

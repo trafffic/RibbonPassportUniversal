@@ -11,12 +11,15 @@ export function Shell({
   narrow = false,
   studio = false,
   wide = false,
+  landing = false,
 }: React.PropsWithChildren<{
   narrow?: boolean;
   /** Desktop studio: panes fill the window and scroll on their own. */
   studio?: boolean;
   /** Classic PC gives storage most of the desktop width. */
   wide?: boolean;
+  /** Empty collections use a readable, scrolling landing page on every platform. */
+  landing?: boolean;
 }>) {
   const router = useRouter(),
     path = usePathname(),
@@ -120,7 +123,7 @@ export function Shell({
       ))}
     </View>
   );
-  const mobileBox = phone && Platform.OS === 'web' && (path === '/' || path === '/competitive');
+  const mobileBox = !landing && phone && Platform.OS === 'web' && (path === '/' || path === '/competitive');
   const fill = (studio && width >= 1100) || mobileBox;
   const alerts = (
     <>
@@ -227,7 +230,7 @@ export function Shell({
           <View
             style={{
               maxWidth:
-                wide ? 1600 : narrow && width >= 1100 ? 960 : width >= 1440 ? 1440 : 1320,
+                landing ? 1100 : wide ? 1600 : narrow && width >= 1100 ? 960 : width >= 1440 ? 1440 : 1320,
               width: "100%",
               alignSelf: "center",
               padding: phone ? 16 : 24,
@@ -268,12 +271,13 @@ export function Shell({
           }}
         >
           <View
+            testID="app-status-bar"
             accessibilityLiveRegion="polite"
             style={{
-              maxWidth: fill || wide ? 1600 : width >= 1440 ? 1440 : 1320,
+              maxWidth: 1600,
               width: "100%",
               alignSelf: "center",
-              paddingHorizontal: fill ? 16 : 24,
+              paddingHorizontal: 16,
               paddingVertical: 6,
               flexDirection: "row",
               alignItems: "center",

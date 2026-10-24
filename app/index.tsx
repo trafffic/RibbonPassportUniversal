@@ -15,7 +15,7 @@ export default function CollectionScreen() {
     collection?.records.find((r) => !r.pokemon.showdownSet)?.pokemon;
   const side = width >= 980, mobileBox = Platform.OS === 'web' && width < 700;
   return (
-    <Shell wide={isDesktop} studio={isDesktop && !!p}>
+    <Shell wide={isDesktop} studio={isDesktop && !!p} landing={!p}>
       <View
         testID={isDesktop ? 'classic-collection' : undefined}
         style={{
