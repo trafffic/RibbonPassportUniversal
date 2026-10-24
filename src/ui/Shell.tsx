@@ -170,11 +170,11 @@ export function Shell({
             style={[
               ui.between,
               {
-                maxWidth: fill || wide ? 1600 : width >= 1440 ? 1440 : 1320,
+                maxWidth: 1600,
                 width: "100%",
                 alignSelf: "center",
-                paddingHorizontal: fill || phone ? 16 : 24,
-                paddingVertical: fill || phone ? 8 : 16,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
               },
             ]}
           >
@@ -189,9 +189,9 @@ export function Shell({
                 accessibilityLabel="Ribbon Passport logo"
                 resizeMode="contain"
                 fadeDuration={0}
-                style={{ width: phone ? 24 : fill ? 28 : 36, height: phone ? 24 : fill ? 28 : 36 }}
+                style={{ width: phone ? 24 : 28, height: phone ? 24 : 28 }}
               />
-              <PixelText style={{ fontSize: fill || phone ? 20 : 24 }}>
+              <PixelText style={{ fontSize: 20 }}>
                 RIBBON PASSPORT
               </PixelText>
             </Pressable>
