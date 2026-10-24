@@ -62,13 +62,17 @@ test('Classic PC opens the same Pokémon in Passport Studio; record, undo, Journ
       .getByText('Ribbon recorded.', { exact: true })
       .filter({ visible: true }),
   ).toBeVisible();
-  await button(page, 'Undo last change').click();
-  await expect(
-    page
-      .getByText('Change undone.', { exact: true })
-      .filter({ visible: true }),
-  ).toBeVisible();
-  await record(page, 'Alert Ribbon');
+  if (width >= 700) {
+    await button(page, 'Undo last change').click();
+    await expect(
+      page
+        .getByText('Change undone.', { exact: true })
+        .filter({ visible: true }),
+    ).toBeVisible();
+    await record(page, 'Alert Ribbon');
+  } else {
+    await expect(button(page, 'Undo last change')).toHaveCount(0);
+  }
   await passportTab(page, 'Journey').click();
   await expect(
     page.getByText('Stamp album', { exact: true }).first(),

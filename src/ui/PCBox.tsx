@@ -365,11 +365,11 @@ export function PCBox({
     </View>
   );
   return (
-    <View testID={classic ? 'classic-storage' : fit ? 'mobile-storage' : undefined} style={{ gap: fit ? 6 : classic ? 10 : 16, flex: classic || fit ? 1 : undefined, minHeight: 0 }}>
+    <View testID={classic ? 'classic-storage' : fit ? 'mobile-storage' : undefined} style={{ gap: fit ? 4 : classic ? 10 : 16, flex: classic || fit ? 1 : undefined, minHeight: 0 }}>
       {!compact && (
         <View style={ui.between}>
-          <View style={{ gap: 5 }}>
-            {classic && <PixelText style={{ fontSize: 12, letterSpacing: 1.5, color: colors.muted }}>POKÉMON STORAGE · {box.slots.filter(Boolean).length} / 30</PixelText>}
+          <View style={{ gap: fit ? 3 : 5 }}>
+            {(classic || fit) && <PixelText style={{ fontSize: fit ? 11 : 12, letterSpacing: fit ? 0 : 1.5, color: colors.muted }}>POKÉMON STORAGE · {box.slots.filter(Boolean).length} / 30</PixelText>}
             <PixelText accessibilityRole="header" style={{ fontSize: classic ? 30 : 25 }}>
               {classic ? 'Your collection' : kind === 'ribbon' ? 'RIBBON MASTERS' : 'COMPETITIVE'}
             </PixelText>
@@ -437,7 +437,7 @@ export function PCBox({
           {exportError}
         </PixelText>
       )}
-      {!classic && <View style={ui.between}>
+      {!classic && !fit && <View style={ui.between}>
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
           POKÉMON STORAGE
         </PixelText>
@@ -447,12 +447,12 @@ export function PCBox({
       </View>}
       <View
         style={{
-          padding: classic ? 0 : 8,
+          padding: classic || fit ? 0 : 8,
           borderRadius: 10,
-          borderWidth: classic ? 0 : 1,
+          borderWidth: classic || fit ? 0 : 1,
           borderColor: colors.border,
-          backgroundColor: classic ? 'transparent' : colors.board,
-          gap: fit ? 6 : 10,
+          backgroundColor: classic || fit ? 'transparent' : colors.board,
+          gap: fit ? 4 : 10,
           flex: classic || fit ? 1 : undefined,
           minHeight: 0,
         }}
@@ -475,7 +475,7 @@ export function PCBox({
               width: classic || fit ? Math.max(1, Math.min(boardArea.width, boardArea.height * m.width / m.height)) : undefined,
               flex: classic || fit ? undefined : 1,
               overflow: 'hidden',
-              borderRadius: classic ? boardWidth * 8 / m.width : 0,
+              borderRadius: boardWidth * 8 / m.width,
             }}
             onLayout={(e) => { setBoardWidth(e.nativeEvent.layout.width); setBoardHeight(e.nativeEvent.layout.height); }}
           >
@@ -658,7 +658,7 @@ export function PCBox({
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 9,
-                padding: 9,
+                padding: fit ? 4 : 9,
                 borderRadius: 4,
                 backgroundColor: colors.panel,
               }}
@@ -711,7 +711,8 @@ export function PCBox({
                 style={{
                   borderTopWidth: 1,
                   borderColor: colors.border,
-                  paddingVertical: 12,
+                  minHeight: 44,
+                  paddingVertical: fit ? 6 : 12,
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 12,

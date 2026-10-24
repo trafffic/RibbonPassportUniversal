@@ -80,6 +80,11 @@ test("mobile Ribbons and Competitive boxes fit without page or box-strip scrolli
       const board = (await page.getByTestId("pc-artwork").boundingBox())!;
       expect(board.height).toBeGreaterThan(90);
       expect(board.width / board.height).toBeCloseTo(208 / 192, 2);
+      if (height === 844)
+        expect(board.width).toBeGreaterThanOrEqual(page.viewportSize()!.width - 14);
+      expect(await page.getByTestId("pc-artwork").evaluate((el) =>
+        parseFloat(getComputedStyle(el).borderTopLeftRadius),
+      )).toBeGreaterThan(8);
       for (const label of [
         "All boxes",
         "Add box",
@@ -118,6 +123,7 @@ test("adding a box is directly available in both sections and persists", async (
 test("the undo notice lasts three seconds and restarts for each new change", async ({
   page,
 }) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 700, "Undo is a desktop control");
   await prepare(page);
   await page.clock.install();
   await button(page, "Add box").click();
@@ -131,6 +137,28 @@ test("the undo notice lasts three seconds and restarts for each new change", asy
   await expect(button(page, "Undo last change")).toBeVisible();
   await button(page, "Undo last change").click();
   await expect(button(page, "Rename Box 04")).toBeVisible();
+});
+
+test("mobile changes never show Undo or resize the box", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) >= 700, "Mobile website layout");
+  await prepare(page);
+  await page.clock.install();
+  for (const route of ["/", "/competitive"]) {
+    await page.goto(route);
+    const board = page.getByTestId("pc-artwork");
+    await expect(board).toBeVisible();
+    const before = (await board.boundingBox())!;
+    await button(page, "Add box").click();
+    await expect(button(page, "Rename Box 04")).toBeVisible();
+    await expect(button(page, "Undo last change")).toHaveCount(0);
+    const after = (await board.boundingBox())!;
+    expect(after.width).toBeCloseTo(before.width, 0);
+    expect(after.height).toBeCloseTo(before.height, 0);
+    await page.clock.fastForward(3100);
+    await expect(button(page, "Undo last change")).toHaveCount(0);
+    const settled = (await board.boundingBox())!;
+    expect(settled.height).toBeCloseTo(before.height, 0);
+  }
 });
 
 test("explicit ribbons.guide export has the required website format and metadata", async ({

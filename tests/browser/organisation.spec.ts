@@ -88,7 +88,16 @@ test('box menus rename, automatic backgrounds, move/swap, party and undo persist
     'aria-label',
     'Select Sparky',
   );
-  await button(page, 'Undo last change').click();
+  if (page.viewportSize()!.width >= 700) {
+    await button(page, 'Undo last change').click();
+  } else {
+    await expect(button(page, 'Undo last change')).toHaveCount(0);
+    await button(page, 'Pokémon actions').click();
+    await button(page, 'Move').click();
+    await button(page, 'All boxes').click();
+    await button(page, 'Box 01 · 5/30').click();
+    await button(page, 'Move to empty slot 1').click();
+  }
   await button(page, 'All boxes').click();
   await button(page, 'Box 01 · 6/30').click();
   await expect(page.getByTestId('pc-slot-1')).toHaveAttribute(
@@ -117,7 +126,16 @@ test('create empty collection, add and edit Pokémon, then recover the earlier v
   await options(page, 'Start a new collection');
   await button(page, 'Create empty collection').click();
   await expect(button(page, 'Select Sparky')).toHaveCount(0);
-  await button(page, 'Undo last change').click();
+  if (page.viewportSize()!.width >= 700) {
+    await button(page, 'Undo last change').click();
+  } else {
+    await expect(button(page, 'Undo last change')).toHaveCount(0);
+    await mainTab(page, 'Settings').click();
+    await button(page, 'Recovery history').click();
+    await button(page, 'Review collection archive 1').click();
+    await button(page, 'Restore collection archive').click();
+    await mainTab(page, 'Ribbons').click();
+  }
   await expect(button(page, 'Select Sparky')).toBeVisible();
   await options(page, 'Add Pokémon');
   await page.getByRole('button', { name: /^Species \/ form:/ }).click();

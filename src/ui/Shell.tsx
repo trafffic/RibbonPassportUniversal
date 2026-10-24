@@ -206,9 +206,9 @@ export function Shell({
             maxWidth: 1600,
             width: "100%",
             alignSelf: "center",
-            paddingHorizontal: 16,
-            paddingTop: 12,
-            paddingBottom: 12,
+            paddingHorizontal: mobileBox ? 6 : 16,
+            paddingTop: mobileBox ? 6 : 12,
+            paddingBottom: mobileBox ? 6 : 12,
             gap: 12,
           }}
         >
@@ -241,7 +241,7 @@ export function Shell({
         </ScrollView>
       )}
       {phone ? (
-        (!!state.notice || state.showUndo) && (
+        !!state.notice && !mobileBox && (
           <View
             accessibilityLiveRegion="polite"
             style={[
@@ -255,13 +255,8 @@ export function Shell({
             ]}
           >
             <PixelText style={{ fontSize: 14, flex: 1 }}>
-              {state.notice || "You can undo your last change."}
+              {state.notice}
             </PixelText>
-            {state.showUndo && state.canUndo && (
-              <Button disabled={state.busy} onPress={state.undo}>
-                Undo last change
-              </Button>
-            )}
           </View>
         )
       ) : (

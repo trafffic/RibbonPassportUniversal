@@ -486,6 +486,7 @@ export function TransferSheet({
   onClose(): void;
 }) {
   const state = useCollection(),
+    { width } = useWindowDimensions(),
     { colors, ui } = useTheme();
   const checkGame = from || p.currentgame,
     atCurrent = checkGame === p.currentgame,
@@ -616,9 +617,9 @@ export function TransferSheet({
           </Button>
         </>
       )}
-      <Button disabled={!state.canUndo || state.busy} onPress={state.undo}>
+      {width >= 700 && <Button disabled={!state.canUndo || state.busy} onPress={state.undo}>
         Undo last change
-      </Button>
+      </Button>}
     </EditorSheet>
   );
 }

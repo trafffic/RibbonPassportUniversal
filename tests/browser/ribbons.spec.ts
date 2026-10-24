@@ -112,15 +112,25 @@ test('a ribbon tile records and removes in one tap, and undo restores it', async
     .filter({ visible: true })
     .first();
   await expect(quick).toBeVisible();
+  const recordLabel = (await quick.getAttribute('aria-label'))!;
   await quick.click();
   await expect(
     page.getByText('Ribbon recorded.', { exact: true }).first(),
   ).toBeVisible();
   await expect(button(page, 'Owned (11)')).toBeVisible();
-  await button(page, 'Undo last change').click();
-  await expect(
-    page.getByText('Change undone.', { exact: true }).first(),
-  ).toBeVisible();
+  if (page.viewportSize()!.width >= 700) {
+    await button(page, 'Undo last change').click();
+    await expect(
+      page.getByText('Change undone.', { exact: true }).first(),
+    ).toBeVisible();
+  } else {
+    await expect(button(page, 'Undo last change')).toHaveCount(0);
+    await button(page, 'Owned (11)').click();
+    const name = recordLabel.replace(/^Record /, '').replace(/ in .+$/, '');
+    await page.getByRole('button', { name: /^Show original records / }).click();
+    await button(page, `Details for ${name}`).click();
+    await button(page, `Remove ${name}`).click();
+  }
   await expect(button(page, 'Owned (10)')).toBeVisible();
 });
 test('species without bundled art load their sprite, falling back through the sources', async ({
