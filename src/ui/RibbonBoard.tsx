@@ -15,10 +15,12 @@ import {
   compatibleGames,
   earningGames,
   generationEarningGames,
+  optionalSizeMarks,
   transferCheck,
   unavailableReason,
 } from '../domain/rules';
 import { assignGame } from '../domain/collection';
+import { sizeName } from '../domain/size-class';
 import {
   nextPageSize,
   validPageSize,
@@ -81,6 +83,7 @@ export function RibbonBoard({
     represented = memoryGroup
       ? p.ribbons.filter((id) => catalog.merges[id] === memoryGroup)
       : [],
+    requiredSize = selected === 'mini-mark' ? 0 : selected === 'jumbo-mark' ? 255 : undefined,
     options = selected ? earningGames(selected, p) : [],
     assignOptions = selected ? assignableGames(p, selected) : [];
   const detail = (id: string) => {
@@ -331,15 +334,21 @@ export function RibbonBoard({
       {sheet === 'size' && (
         <EditorSheet title="Size marks" close="Done" onClose={() => setSheet('')}>
           <PixelText>
-            Size marks depend on the recorded scale and a compatible game.
+            Choose a mark to confirm its size and record the game where it was earned.
           </PixelText>
-          <AwardGrid
-            ids={['mini-mark', 'jumbo-mark']}
-            onSelect={(id) => {
-              setSheet('');
-              detail(id);
-            }}
-          />
+          {optionalSizeMarks.map((id) => (
+            <Button
+              key={id}
+              art={'award-' + id}
+              label={`Details for ${awardName(id)}`}
+              onPress={() => {
+                setSheet('');
+                detail(id);
+              }}
+            >
+              {awardName(id)}{p.ribbons.includes(id) ? ' · Owned' : ''}
+            </Button>
+          ))}
         </EditorSheet>
       )}
       {sheet === 'owned' && (
@@ -446,6 +455,29 @@ export function RibbonBoard({
             </>
           ) : (
             <>
+              {requiredSize !== undefined && (
+                <>
+                  <PixelText>Recorded size: {sizeName(p.sizeScale)}</PixelText>
+                  {p.sizeScale !== requiredSize && (
+                    <>
+                      <PixelText>
+                        {awardName(selected)} requires {sizeName(requiredSize)} size ({requiredSize}).
+                        {' '}Confirm this Pokémon has that size before recording the mark.
+                      </PixelText>
+                      <Button
+                        disabled={state.busy}
+                        onPress={async () => {
+                          const record = state.collection?.records.find((r) => r.id === p.id);
+                          if (record) await state.edit(p.id,
+                            { ...record.pokemon, sizeScale: requiredSize }, record.version.revision);
+                        }}
+                      >
+                        Confirm {sizeName(requiredSize)} size
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
               <PixelText style={ui.label}>EARNED IN</PixelText>
               <View style={ui.row}>
                 {options.map((g) => (
@@ -459,7 +491,7 @@ export function RibbonBoard({
                   </Button>
                 ))}
               </View>
-              {!options.length && (
+              {!options.length && (requiredSize === undefined || p.sizeScale === requiredSize) && (
                 <PixelText>
                   {unavailableReason(selected, game, p) ||
                     'This award cannot be earned manually in a reachable game.'}

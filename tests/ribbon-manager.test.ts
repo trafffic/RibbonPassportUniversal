@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { importBackup, exportSource } from '../src/backup/codec';
 import { assignGame } from '../src/domain/collection';
 import { assignableGames } from '../src/domain/rules';
-import { nextPageSize, validPageSize, tileStatus } from '../src/domain/ribbon-view';
+import { nextPageSize, validPageSize, tileStatus, ribbonView } from '../src/domain/ribbon-view';
 import { restoreCollection } from '../src/domain/organisation';
 
 const backup = (extra: object = {}) =>
@@ -118,6 +118,38 @@ test('tile status reports owned, last chance and the quick action', () => {
   assert.equal(mini.label, 'Optional');
   const far = tileStatus(p, 'alert-ribbon', 'emerald', { owned: false, lastChance: false });
   assert.notEqual(far.action, 'remove');
+});
+
+test('future tiles show an obtainable generation instead of the browsed generation', () => {
+  const p = importBackup(backup({ species: 'pikachu', currentgame: 'as', ribbons: [] }), 'i', 'r').records[0]!.pokemon;
+  for (const [id, gen] of [
+    ['alola-champion-ribbon', 'VII'],
+    ['battle-tree-great-ribbon', 'VII'],
+    ['tower-master-ribbon', 'VIII'],
+    ['twinkling-star-ribbon', 'VIII'],
+    ['paldea-champion-ribbon', 'IX'],
+    ['partner-mark', 'IX'],
+  ]) {
+    const status = tileStatus(p, id!, 'as', { owned: false, lastChance: false });
+    assert.equal(status.label, `Gen ${gen}`);
+    assert.equal(status.action, 'details');
+  }
+  assert.equal(tileStatus(p, 'effort-ribbon', 'as', { owned: false, lastChance: false }).label, 'Gen VI');
+  assert.equal(tileStatus({ ...p, currentgame: 'scar' }, 'alola-champion-ribbon', 'scar', { owned: false, lastChance: false }).label, 'Unavailable');
+});
+
+test('size marks stay in their dedicated menu regardless of filters, size or ownership', () => {
+  const p = importBackup(backup({ species: 'pikachu', currentgame: 'as' }), 'i', 'r').records[0]!.pokemon;
+  for (const sizeScale of [undefined, 0, 128, 255])
+    for (const ribbons of [[], ['mini-mark', 'jumbo-mark']])
+      for (const game of ['as', 'scar'])
+        for (const allGames of [false, true])
+          for (const earnable of [false, true])
+            for (const category of ['All', 'Last chance', 'Later gens'] as const) {
+              const ids = ribbonView({ ...p, sizeScale, ribbons }, game, allGames, earnable, category);
+              assert.ok(!ids.includes('mini-mark'));
+              assert.ok(!ids.includes('jumbo-mark'));
+            }
 });
 
 import { editPokemon } from '../src/domain/organisation';

@@ -32,7 +32,9 @@ test('size marks wait for a click or keyboard activation and can be recorded', a
   const pokemon = [
     { id: 'mini', species: 'pikachu', sizeScale: 0 },
     { id: 'jumbo', species: 'pikachu', sizeScale: 255 },
-  ].map((p) => ({ ...p, ribbons: [], currentgame: 'scar', origingame: 'as', currentlevel: 100 }));
+    { id: 'unknown-mini', species: 'pikachu' },
+    { id: 'standard-jumbo', species: 'pikachu', sizeScale: 128 },
+  ].map((p) => ({ ...p, ribbons: [], currentgame: p.id.includes('-') ? 'as' : 'scar', origingame: 'as', currentlevel: 100 }));
   await page.goto('/');
   await backups(page);
   await importText(page, JSON.stringify({
@@ -40,7 +42,7 @@ test('size marks wait for a click or keyboard activation and can be recorded', a
     collection: { pokemon, teams: [], selectedID: 'mini' },
   }));
 
-  for (const [id, mark] of [['mini', 'Mini Mark'], ['jumbo', 'Jumbo Mark']]) {
+  for (const [id, mark] of [['mini', 'Mini Mark'], ['jumbo', 'Jumbo Mark'], ['unknown-mini', 'Mini Mark'], ['standard-jumbo', 'Jumbo Mark']]) {
     await page.goto(`/passport/${id}`);
     await passportTab(page, 'Ribbons').click();
     await button(page, 'Size marks').click();
@@ -55,6 +57,12 @@ test('size marks wait for a click or keyboard activation and can be recorded', a
       await choice.focus();
       await page.keyboard.press('Enter');
     } else await choice.click();
+    if (id === 'unknown-mini' || id === 'standard-jumbo') {
+      await expect(button(page, `Record ${mark}`)).toBeDisabled();
+      await button(page, `Confirm ${id === 'unknown-mini' ? 'Mini' : 'Jumbo'} size`).click();
+      await expect(button(page, 'Scarlet')).toBeVisible();
+      if (id === 'unknown-mini') await page.screenshot({ path: test.info().outputPath('mini-mark.png') });
+    }
     await button(page, 'Scarlet').click();
     await button(page, `Record ${mark}`).click();
     await expect(button(page, 'Owned (1)')).toBeVisible();
@@ -66,6 +74,38 @@ test('size marks wait for a click or keyboard activation and can be recorded', a
     await button(page, `Remove ${mark}`).click();
     await expect(button(page, 'Owned (0)')).toBeVisible();
   }
+});
+
+test('future ribbon tiles use the earning generation and size marks stay out of the main list', async ({ page }) => {
+  await page.goto('/');
+  await backups(page);
+  await importText(page, JSON.stringify({
+    format: 'ribbon-passport', version: 1,
+    collection: {
+      pokemon: [{ id: 'future', species: 'pikachu', ribbons: [], currentgame: 'as', origingame: 'as', currentlevel: 50, sizeScale: 0 }],
+      teams: [], selectedID: 'future',
+    },
+  }));
+  await page.goto('/passport/future');
+  await passportTab(page, 'Ribbons').click();
+  await button(page, 'All games').click();
+  await button(page, 'Later gens').click();
+  await button(page, '12 ribbons per page. Change to 24').click();
+  for (const [name, gen] of [['Alola Champion Ribbon', 'VII'], ['Tower Master Ribbon', 'VIII'], ['Paldea Champion Ribbon', 'IX']]) {
+    if (await button(page, `Details for ${name}`).count() === 0) {
+      await button(page, 'Next ›').click();
+      await expect(button(page, `Details for ${name}`)).toBeVisible();
+    }
+    const tile = button(page, `Details for ${name}`).locator('..');
+    await expect(tile.getByText(`Gen ${gen}`, { exact: true })).toBeVisible();
+    await expect(tile.getByText('Gen VI', { exact: true })).toHaveCount(0);
+  }
+  await expect(button(page, 'Details for Mini Mark')).toHaveCount(0);
+  await expect(button(page, 'Details for Jumbo Mark')).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath('future-ribbons.png') });
+  await button(page, 'Size marks').click();
+  await expect(button(page, 'Details for Mini Mark')).toBeVisible();
+  await expect(button(page, 'Details for Jumbo Mark')).toBeVisible();
 });
 test('ribbon page size cycles 12, 24, 6 like the iPhone app and persists after reload', async ({
   page,

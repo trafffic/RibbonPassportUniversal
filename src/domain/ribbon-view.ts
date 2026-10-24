@@ -31,6 +31,7 @@ export function ribbonView(
     owned = new Set([...p.ribbons, ...displayedAwards(p)]);
   const candidates = sortAwards(
     managedAwardIDs.filter((id) => {
+      if (optionalSizeMarks.includes(id)) return false;
       if (!catalogue && !ruleData.awards[id]?.games.includes(game))
         return false;
       if (
@@ -84,8 +85,10 @@ export function tileStatus(
       optional,
       action: p.ribbons.includes(id) ? "remove" : "details",
     };
-  const here = earningGames(id, p).includes(game);
-  const gen = generation(game);
+  const available = earningGames(id, p),
+    here = available.includes(game),
+    gen = here ? generation(game) : available.length
+      ? Math.min(...available.map(generation)) : undefined;
   return {
     label: flags.lastChance
       ? "Last chance"
@@ -93,7 +96,7 @@ export function tileStatus(
         ? "Optional"
         : gen
           ? `Gen ${["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"][gen] ?? gen}`
-          : "Not owned",
+          : "Unavailable",
     tone: flags.lastChance ? "last" : "open",
     optional,
     action: here ? "record" : "details",
