@@ -21,7 +21,7 @@ export const editableFields = [
   'trainername',
 ] as const;
 export type PokemonDetails = Pick<Pokemon, (typeof editableFields)[number]>;
-export const defaultBoxCount = 16;
+export const defaultBoxCount = 3;
 export function emptyCollection(
   id: string,
   revision: string,
@@ -59,21 +59,49 @@ export function emptyCollection(
     operations: [],
   };
 }
-/** Expand older storage without moving Pokémon or changing the active box. */
+/** Keep three default boxes; retire only identifiable, untouched empty defaults. */
 export function ensureDefaultBoxes(
   c: Collection,
   context: ChangeContext,
+  kind: 'ribbon' | 'showdown' = 'ribbon',
 ): Collection {
-  const isRibbonBox = (b: Box) => (b.kind ?? 'ribbon') === 'ribbon';
+  const isRibbonBox = (b: Box) => (b.kind ?? 'ribbon') === kind;
   // The first demo seeded this placeholder as its second box. Repair it even
   // when an earlier default-box migration has already expanded storage to 16.
   const legacy = c.boxes.find(b =>
-    isRibbonBox(b) && b.id === 'sample-box-2' && b.name === 'Next adventure',
+    kind === 'ribbon' && isRibbonBox(b) && b.id === 'sample-box-2' && b.name === 'Next adventure',
   );
-  const count = c.boxes.filter(isRibbonBox).length;
-  if (count >= defaultBoxCount && !legacy) return c;
+  const ribbonBoxes = c.boxes.filter(isRibbonBox);
+  const firstID = ribbonBoxes[0]?.id;
+  const protectedBoxes = new Set<string>();
+  try {
+    const root = JSON.parse(c.source.text.replace(/^\uFEFF/, ''));
+    const container = c.source.kind === 'app' ? root.collection : root;
+    const storage = kind === 'showdown' ? container.competitiveStorage :
+      c.source.kind === 'guide' ? root.ribbonPassportLayout : container.storage;
+    for (const box of storage?.boxes ?? []) {
+      // Other versions may store box metadata or slots this app cannot display.
+      if (box && typeof box.id === 'string' && (
+        Object.keys(box).some(key => !['id', 'name', 'slots', 'kind'].includes(key)) ||
+        !Array.isArray(box.slots) || box.slots.slice(30).some((slot: unknown) => slot !== null)
+      )) protectedBoxes.add(box.id);
+    }
+  } catch {
+    // An opaque source must never be used to justify deleting storage.
+    for (const box of ribbonBoxes) protectedBoxes.add(box.id);
+  }
+  const removable = new Set(ribbonBoxes.filter((b, i) =>
+    i >= defaultBoxCount && !b.slots.some(Boolean) && !b.wallpaper && !protectedBoxes.has(b.id) &&
+    !c.operations.some(o => o.kind === 'edit-box' && o.recordID === b.id) &&
+    ((b.id === `${firstID}-${i + 1}` && b.name === `Box ${String(i + 1).padStart(2, '0')}`) || c.operations.some(o =>
+      o.kind === 'create-box' && b.id.startsWith(`${o.id}-box-`) &&
+      [i + 1, Number(b.id.slice(`${o.id}-box-`.length))].some(number => b.name === `Box ${String(number).padStart(2, '0')}`),
+    )),
+  ).map(b => b.id));
+  const count = ribbonBoxes.length - removable.size;
+  if (count >= defaultBoxCount && !legacy && !removable.size) return c;
   let ordinal = 0;
-  const boxes = c.boxes.map(b => {
+  const boxes = c.boxes.filter(b => !removable.has(b.id)).map(b => {
     if (!isRibbonBox(b)) return b;
     ordinal++;
     const autoAdded = /^Box \d+$/.test(b.name) && c.operations.some(o =>
@@ -84,21 +112,23 @@ export function ensureDefaultBoxes(
       : b;
   }),
     ids = new Set(boxes.map(b => b.id)),
-    names = new Set(boxes.map(b => b.name));
+    names = new Set(boxes.filter(isRibbonBox).map(b => b.name));
   let number = 1;
-  while (boxes.length - c.boxes.length < defaultBoxCount - count) {
+  let added = 0;
+  while (added < defaultBoxCount - count) {
     const id = `${context.id}-box-${number}`,
       name = `Box ${String(number++).padStart(2, '0')}`;
     if (ids.has(id) || names.has(name)) continue;
-    boxes.push({ id, name, slots: Array(30).fill(null) });
+    boxes.push({ id, name, slots: Array(30).fill(null), ...(kind === 'showdown' ? { kind } : {}) });
+    added++;
     ids.add(id);
     names.add(name);
   }
   return append(
-    { ...c, boxes, layoutChanged: true },
+    { ...c, boxes, selectedBoxID: removable.has(c.selectedBoxID) ? boxes.find(isRibbonBox)!.id : c.selectedBoxID, layoutChanged: true },
     context,
-    boxes.length > c.boxes.length ? 'create-box' : 'edit-box',
-    boxes[c.boxes.length]?.id ?? legacy!.id,
+    added ? 'create-box' : 'edit-box',
+    boxes.find(isRibbonBox)!.id,
   );
 }
 export function blankPokemon(id: string): Pokemon {
@@ -425,7 +455,7 @@ export function ribbonMastersGuide(c: Collection): Collection {
     ...c,
     source: {
       kind: 'guide',
-      text: JSON.stringify({ fileVersion: 5, boxes: [], pokemon: [] }),
+      text: JSON.stringify({ fileVersion: 5, boxes: [], pokemon: [], settings: {}, lastModified: Date.parse(c.operations.at(-1)?.at ?? '2001-01-01T00:00:00Z') }),
     },
     records: c.records
       .filter((r) => ids.has(r.id))

@@ -111,10 +111,10 @@ test('box backgrounds follow box order and survive switching and reload', async 
   await demo(page);
   const background = (name: string) => page.getByRole('img', { name: `Box background: ${name}`, exact: true });
   await expect(background('Forest')).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Box \d\d$/, exact: true })).toHaveCount(16);
+  await expect(page.getByRole('button', { name: /^Box \d\d$/, exact: true })).toHaveCount(3);
   await button(page, 'Previous box').click();
-  await expect(button(page, 'Rename Box 16')).toBeVisible();
-  await expect(background('Simple')).toBeVisible();
+  await expect(button(page, 'Rename Box 03')).toBeVisible();
+  await expect(background('Desert')).toBeVisible();
   await button(page, 'Next box').click();
   await expect(button(page, 'Rename Box 01')).toBeVisible();
   await button(page, 'Next box').click();

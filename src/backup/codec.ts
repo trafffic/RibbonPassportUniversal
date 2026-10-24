@@ -8,7 +8,8 @@ import type {
   ShowdownSet,
   Visit,
 } from '../domain/model';
-import { editableFields } from '../domain/organisation';
+import { editableFields, ribbonMastersGuide } from '../domain/organisation';
+import exportCompatibility from '../../assets/data/export-compatibility.json';
 
 type Obj = Record<string, unknown>;
 export const object = (v: unknown): v is Obj =>
@@ -907,13 +908,15 @@ export function exportSource(collection: Collection): string {
         collection.id,
       );
       const remaining = new Map(collection.boxes.map((b) => [b.id, b]));
-      const updated = originals.map((raw) => {
+      const updated = originals.flatMap((raw) => {
+        // Known boxes removed from the layout must also disappear from exports.
+        if (object(raw) && typeof raw.id === 'string' && !remaining.has(raw.id) && projected.boxes.some(b => b.id === raw.id)) return [];
         if (
           !object(raw) ||
           typeof raw.id !== 'string' ||
           !remaining.has(raw.id)
         )
-          return raw;
+          return [raw];
         const box = remaining.get(raw.id)!;
         remaining.delete(raw.id);
         const previous = projected.boxes.find((b) => b.id === box.id);
@@ -933,7 +936,7 @@ export function exportSource(collection: Collection): string {
             ...(object(raw.wallpaper) ? raw.wallpaper : {}),
             ...box.wallpaper,
           };
-        return next;
+        return [next];
       });
       const added = [...remaining.values()]
         .filter((b) => b.kind !== 'showdown')
@@ -984,10 +987,10 @@ export function exportSource(collection: Collection): string {
         container.competitiveStorage = {
           ...original,
           boxes: [
-            ...originals.map((raw) => {
-              if (!object(raw)) return raw;
+            ...originals.flatMap((raw) => {
+              if (!object(raw)) return [raw];
               const box = competitiveBoxes.find((b) => b.id === raw.id);
-              if (!box) return raw;
+              if (!box) return before.boxes.some(b => b.id === raw.id) ? [] : [raw];
               const previous = before.boxes.find((b) => b.id === box.id),
                 next: Obj = { ...raw };
               if (box.name !== previous?.name) next.name = box.name;
@@ -1006,7 +1009,7 @@ export function exportSource(collection: Collection): string {
                   ...(object(raw.wallpaper) ? raw.wallpaper : {}),
                   ...box.wallpaper,
                 };
-              return next;
+              return [next];
             }),
             ...competitiveBoxes.filter(
               (b) => !originals.some((raw) => object(raw) && raw.id === b.id),
@@ -1032,6 +1035,46 @@ export function exportSource(collection: Collection): string {
   }
   return serializeJSON(root);
 }
+/** Explicit destination export, independent of the collection's imported format. */
+export function exportRibbonsGuide(collection: Collection): string {
+  const root = parseJSON(exportSource(ribbonMastersGuide(collection))) as Obj;
+  const original = parseJSON(collection.source.text) as Obj;
+  const originals = entriesFor(collection.source.kind, original);
+  const records = collection.records.filter(r => !r.pokemon.showdownSet);
+  const species = exportCompatibility.guideSpecies as Record<string, string>;
+  const balls = exportCompatibility.guideBalls as Record<string, string>;
+  const languages = exportCompatibility.guideLanguages as Record<string, string>;
+  const awards = new Set(exportCompatibility.guideAwards);
+  const games = new Set(exportCompatibility.guideGames);
+  root.pokemon = (root.pokemon as Obj[]).map((entry, i) => {
+    const record = records[i]!;
+    const old = !record.created && object(originals[record.sourceIndex]) ? originals[record.sourceIndex] as Obj : {};
+    if (!species[record.pokemon.species]) throw new Error(`ribbons.guide does not support ${record.pokemon.species}. Use a full collection backup to preserve it.`);
+    const ball = record.pokemon.ball || 'poke', language = record.pokemon.language || 'en';
+    if (!balls[ball]) throw new Error(`ribbons.guide does not support the Poké Ball ${ball}.`);
+    if (!languages[language]) throw new Error(`ribbons.guide does not support the language ${language}.`);
+    const unsupportedAward = record.pokemon.ribbons.find(award => !awards.has(award));
+    if (unsupportedAward) throw new Error(`ribbons.guide does not support the award ${unsupportedAward}. Use a full collection backup to preserve it.`);
+    if (record.pokemon.title && record.pokemon.title !== 'None' && !awards.has(record.pokemon.title)) throw new Error(`ribbons.guide does not support the title ${record.pokemon.title}.`);
+    for (const game of [record.pokemon.currentgame, record.pokemon.origingame]) {
+      if (game && !games.has(game)) throw new Error(`ribbons.guide does not support the game ${game}.`);
+    }
+    return {
+      // Its card renderer expects these fields, even when capture details are unknown.
+      strangeball: '', nature: '', totem: false, trainername: '', trainerid: '',
+      originmark: '', metdate: '', metlocation: '', pokerus: '', achievements: [], notes: '',
+      metlevel: null, scale: false,
+      ...old, ...entry,
+      showdownSet: undefined,
+      species: species[record.pokemon.species], ball, language,
+      gender: record.pokemon.gender || 'unknown',
+      shiny: record.pokemon.shiny && old.shiny === 'square' ? 'square' : entry.shiny,
+    };
+  });
+  if (collection.source.kind === 'guide' && object(original.settings)) root.settings = original.settings;
+  return serializeJSON(root);
+}
+
 export const exportUniversal = (collection: Collection) =>
   JSON.stringify(
     { format: 'ribbon-passport-universal', version: 1, collection },

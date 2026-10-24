@@ -13,12 +13,12 @@ const empty = () => importBackup('{"fileVersion":5,"boxes":["Home"],"pokemon":[]
 const companion = (id: string) => ({ ...blankPokemon(id), species: 'metagross', currentlevel: 100, origingame: 'emerald', currentgame: 'bd' });
 const fixture = fs.readFileSync(new URL('./fixtures/native-app-v1.json', import.meta.url), 'utf8');
 
-test('new collections start with sixteen independent empty boxes and round-trip their identities', () => {
+test('new collections start with three independent empty boxes and round-trip their identities', () => {
   const c = emptyCollection('new', 'r', 'box');
-  assert.equal(c.boxes.length, 16);
-  assert.equal(new Set(c.boxes.map(b => b.id)).size, 16);
+  assert.equal(c.boxes.length, 3);
+  assert.equal(new Set(c.boxes.map(b => b.id)).size, 3);
   assert.equal(c.boxes[0]!.id, c.selectedBoxID);
-  assert.deepEqual(c.boxes.map(b => b.name), Array.from({ length: 16 }, (_, i) => `Box ${String(i + 1).padStart(2, '0')}`));
+  assert.deepEqual(c.boxes.map(b => b.name), Array.from({ length: 3 }, (_, i) => `Box ${String(i + 1).padStart(2, '0')}`));
   assert.ok(c.boxes.every(b => b.slots.length === 30 && b.slots.every(id => id === null)));
   assert.notEqual(c.boxes[0]!.slots, c.boxes[1]!.slots);
   assert.deepEqual(importBackup(exportSource(c), 'other', 'other').boxes, c.boxes);
@@ -29,22 +29,22 @@ test('older collections gain empty ribbon boxes once, preserving contents, selec
   c = createBox(c, 'competitive', 'Box 02', context('competitive'));
   c = { ...c, boxes: c.boxes.map(b => b.id === 'competitive' ? { ...b, kind: 'showdown' } : b) };
   const next = ensureDefaultBoxes(c, context('defaults'));
-  assert.equal(next.boxes.length, 17);
-  assert.equal(next.boxes.filter(b => b.kind !== 'showdown').length, 16);
+  assert.equal(next.boxes.length, 4);
+  assert.equal(next.boxes.filter(b => b.kind !== 'showdown').length, 3);
   assert.deepEqual(next.boxes.slice(0, 2), c.boxes);
   assert.deepEqual(next.records, c.records);
   assert.deepEqual(next.partyIDs, c.partyIDs);
   assert.equal(next.selectedID, c.selectedID);
   assert.equal(next.selectedBoxID, c.selectedBoxID);
   assert.equal(next.source, c.source);
-  assert.equal(new Set(next.boxes.map(b => b.name)).size, 17);
+  assert.equal(new Set(next.boxes.filter(b => b.kind !== 'showdown').map(b => b.name)).size, 3);
   assert.equal(ensureDefaultBoxes(next, context('again')), next);
   assert.deepEqual(importBackup(exportSource(next), 'other', 'other').boxes, next.boxes);
   const larger = createBox(next, 'extra', 'Extra', context('extra'));
   assert.equal(ensureDefaultBoxes(larger, context('again')), larger);
 });
 
-test('the old demo placeholder becomes Box 02 with all sixteen numbered boxes, including already expanded saves', () => {
+test('the old demo placeholder becomes Box 02 and untouched automatic extras shrink to three', () => {
   for (const expanded of [false, true]) {
     let c = emptyCollection('demo', 'initial', 'first');
     c = { ...c, boxes: [c.boxes[0]!, { id: 'sample-box-2', name: 'Next adventure', slots: Array(30).fill(null) }] };
@@ -62,13 +62,58 @@ test('the old demo placeholder becomes Box 02 with all sixteen numbered boxes, i
     }
     c = { ...c, selectedBoxID: 'sample-box-2' };
     const next = ensureDefaultBoxes(c, context('repair'));
-    assert.deepEqual(next.boxes.map(b => b.name), Array.from({ length: 16 }, (_, i) => `Box ${String(i + 1).padStart(2, '0')}`));
-    assert.deepEqual(next.boxes.slice(0, c.boxes.length).map(b => b.id), c.boxes.map(b => b.id));
+    assert.deepEqual(next.boxes.map(b => b.name), Array.from({ length: 3 }, (_, i) => `Box ${String(i + 1).padStart(2, '0')}`));
+    assert.deepEqual(next.boxes.slice(0, c.boxes.length).map(b => b.id), c.boxes.slice(0, 3).map(b => b.id));
     assert.deepEqual(next.boxes[1]!.slots, c.boxes[1]!.slots);
     assert.deepEqual(next.records, c.records);
     assert.equal(next.selectedBoxID, 'sample-box-2');
     assert.equal(ensureDefaultBoxes(next, context('again')), next);
     assert.deepEqual(importBackup(exportSource(next), 'other', 'other').boxes, next.boxes);
+  }
+});
+
+test('reducing defaults keeps occupied, renamed, decorated and manually created boxes', () => {
+  let c = emptyCollection('new', 'r', 'box');
+  c = { ...c, boxes: Array.from({ length: 16 }, (_, i) => ({
+    id: i ? `box-${i + 1}` : 'box', name: `Box ${String(i + 1).padStart(2, '0')}`, slots: Array(30).fill(null),
+  })) };
+  c = addPokemon(c, companion('p'), 'box', context('add'));
+  c = movePokemon(c, 'p', { boxID: 'box-5', slot: 0 }, context('move'));
+  c = editBox(c, 'box-6', { name: 'Favorites' }, context('rename'));
+  c = editBox(c, 'box-7', { name: 'Box 07', wallpaper: { sunMoon: 'sm09' } }, context('decorate'));
+  c = createBox(c, 'user-added', 'Box 17', context('manual'));
+  c = importBackup(exportSource(c), 'restored', 'r');
+  const next = ensureDefaultBoxes(c, context('shrink'));
+  assert.deepEqual(next.boxes.map(b => b.id), ['box', 'box-2', 'box-3', 'box-5', 'box-6', 'box-7', 'user-added']);
+  assert.equal(next.boxes.find(b => b.id === 'box-5')!.slots[0], 'p');
+  assert.deepEqual(next.records, c.records);
+  assert.deepEqual(importBackup(exportSource(next), 'again', 'r').boxes, next.boxes);
+  assert.equal(ensureDefaultBoxes(next, context('again')), next);
+});
+
+test('competitive defaults have three independent boxes and preserve ribbon storage', () => {
+  const c = emptyCollection('new', 'r', 'box');
+  const next = ensureDefaultBoxes(c, context('competitive'), 'showdown');
+  assert.deepEqual(next.boxes.slice(0, 3), c.boxes);
+  assert.equal(next.boxes.filter(b => b.kind === 'showdown').length, 3);
+  assert.deepEqual(importBackup(exportSource(next), 'again', 'r').boxes, next.boxes);
+  assert.equal(ensureDefaultBoxes(next, context('again'), 'showdown'), next);
+});
+
+test('an automatic box explicitly renamed to another numbered name is preserved', () => {
+  const c = emptyCollection('new', 'r', 'box');
+  const expanded = { ...c, boxes: [...c.boxes, { id: 'box-4', name: 'Box 04', slots: Array(30).fill(null) }] };
+  const renamed = editBox(expanded, 'box-4', { name: 'Box 09' }, context('rename'));
+  assert.equal(ensureDefaultBoxes(renamed, context('defaults')), renamed);
+});
+
+test('empty-looking default boxes with opaque metadata or overflow slots are preserved', () => {
+  for (const extra of [{ futureBoxNotes: 'Keep me' }, { slots: [...Array(30).fill(null), { futureSlot: true }] }]) {
+    const base = emptyCollection('new', 'r', 'box');
+    const source = JSON.parse(base.source.text);
+    source.collection.storage.boxes.push({ id: 'box-4', name: 'Box 04', slots: Array(30).fill(null), ...extra });
+    const c = importBackup(JSON.stringify(source), 'new', 'r');
+    assert.equal(ensureDefaultBoxes(c, context('defaults')), c);
   }
 });
 

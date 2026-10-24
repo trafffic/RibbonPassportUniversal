@@ -41,6 +41,7 @@ interface State {
   notice: string;
   conflict: StorageConflict | null;
   canUndo: boolean;
+  showUndo: boolean;
   select(id: string): Promise<boolean>;
   selectBox(id: string): Promise<boolean>;
   change(id: string, award: string, game?: string): Promise<boolean>;
@@ -82,6 +83,18 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     [notice, setNotice] = useState('');
   const [conflict, setConflict] = useState<StorageConflict | null>(null);
   const [undo, setUndo] = useState<UndoToken | Collection | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  useEffect(() => {
+    setShowUndo(!!undo);
+    if (!undo) return;
+    const timer = setTimeout(() => setShowUndo(false), 3000);
+    return () => clearTimeout(timer);
+  }, [undo]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const accept = (value: Collection) => {
     current.current = value;
     setCollection(value);
@@ -107,7 +120,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
             setConflict(pending);
             setError(pending.message);
           } else if (active) {
-            const expanded = ensureDefaultBoxes(value, context());
+            const expanded = ensureDefaultBoxes(ensureDefaultBoxes(value, context()), context(), 'showdown');
             if (expanded !== value) {
               await collectionStore.commit(expanded, value.revision);
               if (active) accept(expanded);
@@ -174,6 +187,7 @@ export function CollectionProvider({ children }: React.PropsWithChildren) {
     notice,
     conflict,
     canUndo: !!undo,
+    showUndo,
     reload: async () => {
       if (locked.current) return;
       locked.current = true;

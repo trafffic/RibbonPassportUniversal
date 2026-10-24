@@ -53,6 +53,9 @@ test('ribbonMastersGuide exports a ribbons.guide backup without competitive Poke
   c = addPokemon(c, { ...blankPokemon('build'), species: 'pikachu', currentgame: 'sw', origingame: 'sw', showdownSet: { item: '', ability: '', nature: '', evs: '', ivs: '', teraType: '', moves: [] } }, 'box', ctx());
   const out = JSON.parse(exportSource(ribbonMastersGuide(c)));
   assert.equal(out.fileVersion, 5);
+  assert.deepEqual(out.settings, {});
+  assert.ok(Number.isFinite(out.lastModified));
+  assert.equal(out.boxes.length, 3);
   assert.equal(out.pokemon.length, 6);
   assert.ok(out.pokemon.every((p: any) => p.id !== 'build'));
   assert.equal(importBackup(JSON.stringify(out), 'x', 'y').records.length, 6);

@@ -10,7 +10,7 @@ import {
   offline,
   demo,
 } from './helpers';
-test('the legacy demo opens with Box 01 through Box 16 and no Next adventure placeholder', async ({ page }, info) => {
+test('the legacy demo opens with three boxes and no Next adventure placeholder', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'Storage migration is independent of viewport size');
   await demo(page);
   await backups(page);
@@ -22,20 +22,20 @@ test('the legacy demo opens with Box 01 through Box 16 and no Next adventure pla
   await importText(page, JSON.stringify(raw));
   await expect(button(page, 'Next adventure')).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('button', { name: /^Box \d\d$/ })).toHaveCount(16);
+  await expect(page.getByRole('button', { name: /^Box \d\d$/ })).toHaveCount(3);
   await expect(button(page, 'Next adventure')).toHaveCount(0);
   await button(page, 'Next box').click();
   await expect(button(page, 'Rename Box 02')).toBeVisible();
   await expect(page.getByTestId('pc-slot-1')).toHaveAttribute('aria-label', 'Select Archive');
   await button(page, 'Previous box').click();
   await button(page, 'Previous box').click();
-  await expect(button(page, 'Rename Box 16')).toBeVisible();
+  await expect(button(page, 'Rename Box 03')).toBeVisible();
   await page.reload();
-  await expect(button(page, 'Rename Box 16')).toBeVisible();
+  await expect(button(page, 'Rename Box 03')).toBeVisible();
   await button(page, 'Next box').click();
   await expect(button(page, 'Rename Box 01')).toBeVisible();
 });
-test('older saved collections expand to sixteen boxes once without changing their contents', async ({ page }, info) => {
+test('older saved collections gain three boxes per section without changing their contents', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'Storage migration is independent of viewport size');
   await demo(page);
   await backups(page);
@@ -46,7 +46,7 @@ test('older saved collections expand to sixteen boxes once without changing thei
   expect(before.boxes).toHaveLength(1);
   await page.goto('/');
   await page.reload();
-  await expect(page.getByRole('button', { name: /^(Archive box|Box \d\d)$/ })).toHaveCount(16);
+  await expect(page.getByRole('button', { name: /^(Archive box|Box \d\d)$/ })).toHaveCount(3);
   await expect(page.getByTestId('pc-slot-1')).toHaveAttribute('aria-label', 'Select Archive');
   await backups(page);
   const after = JSON.parse(await download(page, 'Export collection')).collection;
@@ -66,8 +66,8 @@ test('box menus rename, automatic backgrounds, move/swap, party and undo persist
 }, info) => {
   await demo(page);
   await options(page, 'New box');
-  await expect(button(page, 'Rename Box 17')).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Box background: Forest', exact: true })).toBeVisible();
+  await expect(button(page, 'Rename Box 04')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Box background: Savanna', exact: true })).toBeVisible();
   await button(page, 'Box options').click();
   await button(page, 'Rename box').click();
   await page
@@ -75,19 +75,22 @@ test('box menus rename, automatic backgrounds, move/swap, party and undo persist
     .fill('Travellers');
   await expect(page.getByRole('button', { name: /^Wallpaper / })).toHaveCount(0);
   await button(page, 'Save box').click();
-  await button(page, 'Box 01').click();
+  await button(page, 'All boxes').click();
+  await button(page, 'Box 01 · 6/30').click();
   await expect(page.getByRole('img', { name: 'Box background: Forest', exact: true })).toBeVisible();
   await button(page, 'Select Sparky').click();
   await button(page, 'Pokémon actions').click();
   await button(page, 'Move').click();
-  await button(page, 'Travellers').click();
+  await button(page, 'All boxes').click();
+  await button(page, 'Travellers · 0/30').click();
   await button(page, 'Move to empty slot 30').click();
   await expect(page.getByTestId('pc-slot-30')).toHaveAttribute(
     'aria-label',
     'Select Sparky',
   );
   await button(page, 'Undo last change').click();
-  await button(page, 'Box 01').click();
+  await button(page, 'All boxes').click();
+  await button(page, 'Box 01 · 6/30').click();
   await expect(page.getByTestId('pc-slot-1')).toHaveAttribute(
     'aria-label',
     'Select Sparky',
@@ -206,7 +209,8 @@ test('dragging a sprite moves it, swaps, and pages boxes over the arrows', async
     other!,
   );
   await options(page, 'New box');
-  await button(page, 'Box 01').click();
+  await button(page, 'All boxes').click();
+  await button(page, 'Box 01 · 6/30').click();
   await button(page, 'Next box').scrollIntoViewIfNeeded();
   const next = (await button(page, 'Next box').boundingBox())!;
   await drag('pc-slot-2', { x: next.x + 5, y: next.y + 5 }, 900);

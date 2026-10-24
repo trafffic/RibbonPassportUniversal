@@ -15,9 +15,9 @@ import { useCollection } from '../state/CollectionProvider';
 import { usePassportLink } from './usePassportLink';
 import { displayName, displayedAwards, gameName } from '../domain/catalog';
 import type { Pokemon } from '../domain/model';
-import { createBox, ribbonMastersGuide } from '../domain/organisation';
+import { createBox } from '../domain/organisation';
 import { deletePokemon } from '../domain/passport';
-import { exportSource } from '../backup/codec';
+import { exportRibbonsGuide } from '../backup/codec';
 import { saveBackup } from '../backup/files';
 import { loadPreference, savePreference } from '../state/preference';
 import { Art, Button, Panel, PixelText, Sprite } from './primitives';
@@ -46,6 +46,7 @@ type Latest = {
   boardHeight: number;
   area: { width: number; height: number };
   classic: boolean;
+  fit: boolean;
   party: boolean;
   box: { id: string; slots: (string | null)[] };
   boxes: { id: string }[];
@@ -60,12 +61,15 @@ export function PCBox({
   compact = false,
   classic = false,
   followPassport = false,
+  fit = false,
 }: {
   kind?: 'ribbon' | 'showdown';
   compact?: boolean;
   /** Prominent landscape storage and a horizontal party on desktop. */
   classic?: boolean;
   followPassport?: boolean;
+  /** Fit the mobile website's storage controls and board into the viewport. */
+  fit?: boolean;
 }) {
   const passport = usePassportLink();
   const state = useCollection(),
@@ -138,6 +142,7 @@ export function PCBox({
     boardHeight,
     area: boardArea,
     classic,
+    fit: classic || fit,
     party,
     box,
     boxes,
@@ -155,8 +160,8 @@ export function PCBox({
   const frames = () => {
     const L = latest.current,
       art = {
-        x: L.classic ? Math.max(0, (L.area.width - L.boardWidth) / 2) : L.party ? 48 : 0,
-        y: L.classic ? Math.max(0, (L.area.height - L.boardHeight) / 2) : 0,
+        x: (L.classic ? 0 : L.party ? 48 : 0) + (L.fit ? Math.max(0, (L.area.width - L.boardWidth) / 2) : 0),
+        y: L.fit ? Math.max(0, (L.area.height - L.boardHeight) / 2) : 0,
         width: L.boardWidth,
         height: L.boardHeight,
       };
@@ -304,7 +309,7 @@ export function PCBox({
     setSheet('');
     try {
       await saveBackup(
-        exportSource(ribbonMastersGuide(c)),
+        exportRibbonsGuide(c),
         'RibbonBackup-RibbonMasters.json',
       );
     } catch (e) {
@@ -360,7 +365,7 @@ export function PCBox({
     </View>
   );
   return (
-    <View testID={classic ? 'classic-storage' : undefined} style={{ gap: classic ? 10 : 16, flex: classic ? 1 : undefined, minHeight: 0 }}>
+    <View testID={classic ? 'classic-storage' : fit ? 'mobile-storage' : undefined} style={{ gap: fit ? 6 : classic ? 10 : 16, flex: classic || fit ? 1 : undefined, minHeight: 0 }}>
       {!compact && (
         <View style={ui.between}>
           <View style={{ gap: 5 }}>
@@ -447,28 +452,28 @@ export function PCBox({
           borderWidth: classic ? 0 : 1,
           borderColor: colors.border,
           backgroundColor: classic ? 'transparent' : colors.board,
-          gap: 10,
-          flex: classic ? 1 : undefined,
+          gap: fit ? 6 : 10,
+          flex: classic || fit ? 1 : undefined,
           minHeight: 0,
         }}
       >
         <View
           ref={rowRef}
           {...responder.panHandlers}
-          style={{ flexDirection: classic ? 'column' : 'row', gap: classic ? 10 : 5, alignItems: 'stretch', flex: classic ? 1 : undefined, minHeight: 0 }}
+          style={{ flexDirection: classic ? 'column' : 'row', gap: classic ? 10 : 5, alignItems: 'stretch', flex: classic || fit ? 1 : undefined, minHeight: 0 }}
         >
           {!classic && partyRail}
           <View
-            onLayout={classic ? (e) => setBoardArea({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height }) : undefined}
-            style={{ flex: 1, minHeight: 0, minWidth: 0, alignItems: classic ? 'center' : 'stretch', justifyContent: classic ? 'center' : undefined }}
+            onLayout={classic || fit ? (e) => setBoardArea({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height }) : undefined}
+            style={{ flex: 1, minHeight: 0, minWidth: 0, alignItems: classic || fit ? 'center' : 'stretch', justifyContent: classic || fit ? 'center' : undefined }}
           >
           <View
             testID="pc-artwork"
             style={{
               minWidth: 0,
               aspectRatio: m.width / m.height,
-              width: classic ? Math.max(1, Math.min(boardArea.width, boardArea.height * m.width / m.height)) : undefined,
-              flex: classic ? undefined : 1,
+              width: classic || fit ? Math.max(1, Math.min(boardArea.width, boardArea.height * m.width / m.height)) : undefined,
+              flex: classic || fit ? undefined : 1,
               overflow: 'hidden',
               borderRadius: classic ? boardWidth * 8 / m.width : 0,
             }}
@@ -730,8 +735,8 @@ export function PCBox({
             )}
           </>
         )}
-        <ScrollView horizontal style={{ flexGrow: 0 }} contentContainerStyle={{ gap: classic ? 8 : 20 }}>
-          {boxes.map((b) => (
+        <ScrollView horizontal scrollEnabled={!fit} showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: fit ? 8 : classic ? 8 : 20, ...(fit ? { width: '100%' } : {}) }}>
+          {(fit ? boxes.slice(Math.floor(Math.max(0, index) / 3) * 3, Math.floor(Math.max(0, index) / 3) * 3 + 3) : boxes).map((b) => (
             <Pressable
               key={b.id}
               accessibilityRole="button"
@@ -739,6 +744,8 @@ export function PCBox({
               onPress={() => state.selectBox(b.id)}
               style={{
                 minHeight: 40,
+                flex: fit ? 1 : undefined,
+                minWidth: 0,
                 paddingVertical: 10,
                 borderWidth: classic ? 1 : 0,
                 borderBottomWidth: classic ? 1 : 2,
@@ -747,7 +754,7 @@ export function PCBox({
                 borderColor: classic ? colors.border : b.id === box.id ? colors.accent : 'transparent',
               }}
             >
-              <PixelText style={{ fontSize: classic ? 14 : 12, color: classic && b.id === box.id ? colors.paper : colors.ink }}>
+              <PixelText numberOfLines={1} style={{ fontSize: classic ? 14 : 12, color: classic && b.id === box.id ? colors.paper : colors.ink }}>
                 {b.name.toUpperCase()}
               </PixelText>
             </Pressable>
@@ -769,6 +776,15 @@ export function PCBox({
             <PixelText style={{ fontSize: 14, color: colors.muted }}>
               ▦ All boxes
             </PixelText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add box"
+            disabled={state.busy}
+            onPress={addBox}
+            style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 }}
+          >
+            <PixelText style={{ fontSize: 14, color: colors.accent }}>+ Box</PixelText>
           </Pressable>
           <Pressable
             ref={boxAnchor.ref}

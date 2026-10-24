@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, ScrollView, View, Pressable, useWindowDimensions } from "react-native";
+import { Image, ScrollView, View, Pressable, Platform, useWindowDimensions } from "react-native";
 import { usePathname, useRouter, useLocalSearchParams } from "expo-router";
 import { useCollection } from "../state/CollectionProvider";
 import { useTheme } from "./theme";
@@ -120,7 +120,8 @@ export function Shell({
       ))}
     </View>
   );
-  const fill = studio && width >= 1100;
+  const mobileBox = phone && Platform.OS === 'web' && (path === '/' || path === '/competitive');
+  const fill = (studio && width >= 1100) || mobileBox;
   const alerts = (
     <>
       {!!state.error && (
@@ -240,7 +241,7 @@ export function Shell({
         </ScrollView>
       )}
       {phone ? (
-        (!!state.notice || state.canUndo) && (
+        (!!state.notice || state.showUndo) && (
           <View
             accessibilityLiveRegion="polite"
             style={[
@@ -256,7 +257,7 @@ export function Shell({
             <PixelText style={{ fontSize: 14, flex: 1 }}>
               {state.notice || "You can undo your last change."}
             </PixelText>
-            {state.canUndo && (
+            {state.showUndo && state.canUndo && (
               <Button disabled={state.busy} onPress={state.undo}>
                 Undo last change
               </Button>
@@ -291,7 +292,7 @@ export function Shell({
             <PixelText numberOfLines={1} style={{ fontSize: 12, flex: 1 }}>
               {state.notice}
             </PixelText>
-            {state.canUndo && (
+            {state.showUndo && state.canUndo && (
               <Button disabled={state.busy} onPress={state.undo}>
                 Undo last change
               </Button>

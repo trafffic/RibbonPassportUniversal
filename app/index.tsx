@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useCollection } from '../src/state/CollectionProvider';
 import { Shell } from '../src/ui/Shell';
 import { PCBox } from '../src/ui/PCBox';
@@ -13,7 +13,7 @@ export default function CollectionScreen() {
       (r) => r.id === collection.selectedID && !r.pokemon.showdownSet,
     )?.pokemon ??
     collection?.records.find((r) => !r.pokemon.showdownSet)?.pokemon;
-  const side = width >= 980;
+  const side = width >= 980, mobileBox = Platform.OS === 'web' && width < 700;
   return (
     <Shell wide={isDesktop} studio={isDesktop && !!p}>
       <View
@@ -21,20 +21,20 @@ export default function CollectionScreen() {
         style={{
           flexDirection: side ? 'row' : 'column',
           gap: 24,
-          alignItems: isDesktop ? 'stretch' : 'flex-start',
-          flex: isDesktop ? 1 : undefined,
+          alignItems: isDesktop || mobileBox ? 'stretch' : 'flex-start',
+          flex: isDesktop || mobileBox ? 1 : undefined,
           minHeight: 0,
         }}
       >
         <View
           style={{
-            flex: side ? 1 : undefined,
+            flex: side || mobileBox ? 1 : undefined,
             width: side ? undefined : '100%',
             minWidth: 0,
             minHeight: 0,
           }}
         >
-          <PCBox classic={isDesktop} />
+          <PCBox classic={isDesktop} fit={mobileBox} />
         </View>
         {side && p && (
           <View style={{ width: isDesktop ? 340 : undefined, flex: isDesktop ? undefined : 1, minWidth: 0, minHeight: 0 }}>

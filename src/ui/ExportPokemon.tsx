@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useCollection } from '../state/CollectionProvider';
-import { deletePokemon } from '../domain/passport';
-import { exportSource } from '../backup/codec';
+import { exportRibbonsGuide } from '../backup/codec';
 import { exportShowdown } from '../domain/showdown';
 import { saveBackup } from '../backup/files';
 import { canCopy, copyText } from '../backup/clipboard';
@@ -15,7 +14,7 @@ const targets = {
   },
   ribbons: {
     name: 'ribbons.guide',
-    help: 'On ribbons.guide, open Settings → Data → Restore Backup. Restoring replaces the website’s collection with this file.',
+    help: 'On ribbons.guide, open Data → Restore Backup File. Restoring replaces its collection. Unrecorded ball and language export as Poké Ball and English.',
     save: 'Save JSON file',
     file: 'RibbonPassport-Pokemon.json',
   },
@@ -33,14 +32,16 @@ export function ExportPokemon({ id }: { id: string }) {
       const p = c?.records.find((r) => r.id === id)?.pokemon;
       if (!c || !p) throw new Error('Pokémon not found.');
       if (target === 'showdown') return { text: exportShowdown([p]) };
-      let single = c;
-      for (const r of c.records)
-        if (r.id !== id)
-          single = deletePokemon(single, r.id, {
-            id: 'export:' + r.id,
-            at: new Date().toISOString(),
-          });
-      return { text: exportSource(single) };
+      const record = c.records.find(r => r.id === id)!;
+      // A destination export contains this Pokémon in one box, including when
+      // exporting a competitive build to ribbons.guide.
+      const single = {
+        ...c,
+        records: [{ ...record, pokemon: { ...p, showdownSet: undefined } }],
+        boxes: [{ id: 'export-box', name: 'Box 01', slots: Array.from({ length: 30 }, (_, slot) => slot === 0 ? id : null) }],
+        partyIDs: [],
+      };
+      return { text: exportRibbonsGuide(single) };
     } catch (e) {
       return { text: '', error: e instanceof Error ? e.message : String(e) };
     }

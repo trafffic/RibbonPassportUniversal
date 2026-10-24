@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useCollection } from '../state/CollectionProvider';
-import { exportSource, exportUniversal, importBackup } from '../backup/codec';
+import { exportSource, exportUniversal, exportRibbonsGuide, importBackup } from '../backup/codec';
 import { chooseBackup, saveBackup } from '../backup/files';
 import type { Collection } from '../domain/model';
 import { Panel, PixelText, Button } from './primitives';
@@ -75,6 +75,15 @@ export function BackupPanel({ onClose }: { onClose: () => void }) {
         </Button>
         <Button
           disabled={disabled || !state.collection}
+          onPress={() => run(async () => {
+            await saveBackup(exportRibbonsGuide(state.collection!), 'RibbonBackup.json');
+            setMessage('ribbons.guide backup prepared. Includes Ribbon Masters and box assignments.');
+          })}
+        >
+          Export for ribbons.guide
+        </Button>
+        <Button
+          disabled={disabled || !state.collection}
           onPress={() =>
             run(async () => {
               await saveBackup(
@@ -97,7 +106,8 @@ export function BackupPanel({ onClose }: { onClose: () => void }) {
         exports include box layouts. Guide-format exports include box names and
         assignments plus an extension for exact slots, party and wallpapers;
         ribbons.guide ignores this extension. Other apps may ignore added
-        earning history.
+        earning history. For ribbons.guide, unrecorded ball and language use
+        Poké Ball and English; your local records stay unchanged.
       </PixelText>
       {state.conflict && (
         <View style={ui.row}>
