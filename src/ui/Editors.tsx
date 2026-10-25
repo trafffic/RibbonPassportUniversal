@@ -36,6 +36,7 @@ import {
   Toggle,
 } from './primitives';
 import { searchChoices } from './form-logic';
+import { baseSpeciesID, formOptions, speciesOptions } from './pokemon-choices';
 import { colors, ui, useTheme } from './theme';
 import { CornerButton } from './CornerButton';
 import { TerminalGlyph } from './TerminalGlyph';
@@ -485,12 +486,6 @@ const shadowSpecies = (id: string) =>
   !!ruleData.species[id]?.flags?.some((f: string) =>
     ['colShadow', 'xdShadow'].includes(f),
   );
-const speciesOptions = Object.entries(catalog.pokemon)
-  .sort((a, b) => (a[1].natdex ?? 9999) - (b[1].natdex ?? 9999))
-  .map(([id, p]) => ({
-    id,
-    name: `#${String(p.natdex ?? '?').padStart(4, '0')} ${p.name}${p.name.toLowerCase().replace(/[^a-z0-9]/g, '') !== id.replace(/[^a-z0-9]/g, '') ? ` · ${id}` : ''}`,
-  }));
 // Catalogue group labels (e.g. ORAS) are headings, not an individual game's earning location.
 const gameOptions = [
   { id: '', name: 'Not set' },
@@ -538,6 +533,8 @@ export function PokemonEditor({
     [size, setSize] = useState<number | undefined>(draft.sizeScale);
   const [error, setError] = useState('');
   const [marks, setMarks] = useState(false);
+  const species = baseSpeciesID(draft.species);
+  const forms = formOptions(species);
   const p = {
     ...draft,
     currentlevel: level,
@@ -584,11 +581,11 @@ export function PokemonEditor({
       </View>
       <PixelText style={ui.heading}>Pokémon</PixelText>
       <ChoiceField
-        label="Species / form"
-        value={draft.species}
+        label="Species"
+        value={species}
         options={speciesOptions}
         onChange={(id) =>
-          setDraft((old) => ({
+          setDraft((old) => id === baseSpeciesID(old.species) ? old : ({
             ...old,
             species: id,
             gmax: false,
@@ -596,6 +593,20 @@ export function PokemonEditor({
           }))
         }
       />
+      {!!draft.species && forms.length > 1 && (
+        <ChoiceField
+          key={species}
+          label="Form"
+          value={draft.species}
+          options={forms}
+          onChange={(id) => setDraft((old) => ({
+            ...old,
+            species: id,
+            gmax: false,
+            shadow: false,
+          }))}
+        />
+      )}
       <Field
         label="Nickname"
         value={draft.nickname}

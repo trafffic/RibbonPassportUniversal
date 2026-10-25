@@ -138,9 +138,9 @@ test('create empty collection, add and edit Pokémon, then recover the earlier v
   }
   await expect(button(page, 'Select Sparky')).toBeVisible();
   await options(page, 'Add Pokémon');
-  await page.getByRole('button', { name: /^Species \/ form:/ }).click();
+  await page.getByRole('button', { name: /^Species:/ }).click();
   await page
-    .getByRole('textbox', { name: 'Search species / form', exact: true })
+    .getByRole('textbox', { name: 'Search species', exact: true })
     .fill('metagross');
   await button(page, 'Choose #0376 Metagross').click();
   await page

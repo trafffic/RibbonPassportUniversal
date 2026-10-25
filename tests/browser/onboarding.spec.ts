@@ -114,8 +114,8 @@ test('adding the first Pokémon from either landing page opens storage and persi
     await page.goto(route!);
     await expect(page.getByTestId('collection-landing')).toBeVisible();
     await button(page, 'Add Pokémon').click();
-    await page.getByRole('button', { name: /^Species \/ form:/ }).click();
-    await page.getByRole('textbox', { name: 'Search species / form', exact: true }).fill('metagross');
+    await page.getByRole('button', { name: /^Species:/ }).click();
+    await page.getByRole('textbox', { name: 'Search species', exact: true }).fill('metagross');
     await button(page, 'Choose #0376 Metagross').click();
     await page.getByRole('textbox', { name: 'Nickname', exact: true }).fill(nickname!);
     await button(page, 'Add to box').click();
