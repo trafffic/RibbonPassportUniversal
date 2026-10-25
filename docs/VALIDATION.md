@@ -1,5 +1,13 @@
 # Validation — 22 October 2026
 
+## Collection refinements — 25 October 2026
+
+- Strict TypeScript check and all **139 unit tests** pass. Added coverage checks canonical form aliases without changing saved IDs, cap/rider Showdown exports, sprite provider paths, combined collection filters, stable and undoable box sorting, navigation-insensitive backup fingerprints, and ribbon/earnable-mark goals through original/universal/guide exports, clearing, recovery and earning/undo.
+- The final focused browser matrix covers desktop (1440px), phone (390px), small phone (320px) and tablet (820px): **70 applicable cases verified across the matrix and targeted reruns**, with six viewport-specific skips. The matrix initially passed 69 cases; its remaining desktop Back-navigation test resolved a retained, hidden PC during a route transition. The test now waits for the collection preview before selecting a slot; both desktop navigation cases subsequently passed three repetitions each (six checks). The earlier broad desktop/phone suite also exercised offline caching, conflicts, quota failures, ribbon recording, guides, teams and recovery.
+- New browser flows verify automatic draft restoration across close/reload (including level/met level), explicit discard, draft-storage failures and stale revisions; compatible game suggestions with an explicit all-games override; combined search filters; sorting/undo; pinned mark export/reload/clear; and backup status before export, after navigation/reload and after a content edit. A 640px-height layout regression found during this pass was fixed by placing the mobile goal action inside the selected Pokémon summary.
+- Production web export and offline precache pass with **1,149 bundled files**. The cap, cosplay and rider sprite URLs return HTTP 200; alias paths match the [PokeSprite catalogue](https://github.com/msikma/pokesprite/blob/master/data/pokemon.json). Unbundled sprites still need an initial online load before being available offline.
+- Restored editor and goal layouts were visually inspected on desktop and phone. These changes have not been rebuilt or tested on native Android/iOS devices; earlier native evidence below applies to its recorded revisions.
+
 ## Current production parity implementation
 
 - Strict TypeScript check and **54 domain/backup/storage/artwork tests passed**, with no failures or skips. Added coverage includes all 423 guide/earning-game pairs, independently editable attributed community teams, Showdown text/build round trips, notebook photos and removal, capture marks, metadata-specific source preservation, explicit deletion, chronological recovery, competitive opaque storage fields, and both six-member parties in native and guide-format exports.

@@ -1,7 +1,7 @@
 import type { Collection, Pokemon, Team } from './model';
 import type { ChangeContext } from './collection';
 import { ruleData } from './catalog';
-import { removeRibbon } from './rules';
+import { earningGames, isManagedAward, removeRibbon } from './rules';
 export const captureMarkIDs = Object.entries(ruleData.awards)
   .filter(([, rule]) => rule.mark && !rule.games.length)
   .map(([id]) => id);
@@ -81,6 +81,7 @@ export const extraFields = [
   'showdownSet',
   'source',
   'communitySourceIDs',
+  'ribbonGoal',
 ] as const;
 export function patchPassport(
   c: Collection,
@@ -112,6 +113,10 @@ export function patchPassport(
       if ('move' in row && !row.move.trim())
         throw new Error('A move name is required.');
     }
+  }
+  if (patch.ribbonGoal != null && (!isManagedAward(patch.ribbonGoal.award) ||
+    !earningGames(patch.ribbonGoal.award, record.pokemon).includes(patch.ribbonGoal.game))) {
+    throw new Error('Choose an unowned ribbon or earnable mark and a compatible earning game.');
   }
   return {
     ...c,

@@ -2,6 +2,7 @@ import catalogData from '../../assets/data/catalog.json';
 import orderData from '../../assets/data/catalog-order.json';
 import rulesData from '../../assets/data/ribbon-rules.json';
 import type { Pokemon, Visit } from './model';
+import { canonicalSpeciesID, speciesLabel, spriteSpeciesID } from './species';
 
 interface SpeciesInfo { name: string; sprite?: string; female?: boolean; natdex?: number; showdown?: string; pokeapiID?: number }
 interface Catalog {
@@ -35,7 +36,7 @@ export const sortAwards = (ids: string[]) => [...new Set(ids)].sort((a, b) =>
   (awardIndex.get(a) ?? 9999) - (awardIndex.get(b) ?? 9999) || a.localeCompare(b));
 export const gameName = (id: string) => catalog.games[id] ?? (id || 'Game not set');
 export const awardName = (id: string) => catalog.ribbons[id] ?? id;
-export const displayName = (p: Pokemon) => p.nickname || catalog.pokemon[p.species]?.name || p.species;
+export const displayName = (p: Pokemon) => p.nickname || speciesLabel(p);
 export const generation = (game: string) => ruleData.games[game]?.gen ?? catalog.gameInfo[game]?.gen ?? 0;
 
 // Memory ribbons are a view. Original ownership and earning locations never change.
@@ -72,9 +73,9 @@ export function recordedVisits(p: Pokemon): Visit[] {
 export function spriteKey(p: Pokemon): string {
   if (p.species === 'lugia-shadow' || (p.species === 'lugia' &&
     (p.shadow || ['xd', 'xd-nso'].includes(p.origingame) || ['xd', 'xd-nso'].includes(p.currentgame)))) return 'sprite-lugia-shadow';
-  const info = catalog.pokemon[p.species];
+  const info = catalog.pokemon[canonicalSpeciesID(p.species)];
   const gmax = p.gmax && catalog.gmaxSpecies.includes(p.species);
-  let slug = gmax ? `${p.species}-gmax` : info?.sprite ?? p.species;
+  let slug = gmax ? `${p.species}-gmax` : spriteSpeciesID(p.species);
   if (p.shiny && slug.startsWith('alcremie-')) slug = slug.replace(/caramel|lemon|matcha|mint|rainbow|rubycream|rubyswirl|salted|vanilla/g, '').replace(/--/g, '-').replace('-strawberry', '');
   const female = !gmax && p.gender === 'female' && info?.female;
   return `sprite-${p.shiny ? 'shiny' : 'regular'}_${female ? 'female_' : ''}${slug}`;

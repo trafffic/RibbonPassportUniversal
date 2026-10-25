@@ -28,6 +28,7 @@ export interface Pokemon {
   journal?: Memory[];
   moveNotes?: MoveNote[];
   savedBuilds?: SavedBuild[];
+  ribbonGoal?: { award: string; game: string } | null;
 }
 export interface ShowdownSet {
   item: string;

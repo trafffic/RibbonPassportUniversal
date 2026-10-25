@@ -36,7 +36,9 @@ import {
   Toggle,
 } from './primitives';
 import { searchChoices } from './form-logic';
-import { baseSpeciesID, formOptions, speciesOptions } from './pokemon-choices';
+import { baseSpeciesID, canonicalSpeciesID, formOptions, speciesOptions } from './pokemon-choices';
+import { speciesLabel } from '../domain/species';
+import { loadEditorDraft, storeEditorDraft } from '../state/editor-drafts';
 import { colors, ui, useTheme } from './theme';
 import { CornerButton } from './CornerButton';
 import { TerminalGlyph } from './TerminalGlyph';
@@ -494,6 +496,23 @@ const gameOptions = [
     name: gameName(id),
   })),
 ];
+function PokemonGameField({ label, value, pokemon, onChange, origin = false }: {
+  label: string; value: string; pokemon: Pokemon; onChange(id: string): void; origin?: boolean;
+}) {
+  const { ui, colors } = useTheme();
+  const [all, setAll] = useState(false);
+  const compatible = new Set(compatibleGames(origin ? { ...pokemon, currentgame: '', origingame: '', gmax: false, ball: undefined } : pokemon, false));
+  const options = gameOptions.filter(o => !o.id || !pokemon.species || all || compatible.has(o.id) || o.id === value)
+    .sort((a, b) => !a.id ? -1 : !b.id ? 1 : Number(compatible.has(b.id)) - Number(compatible.has(a.id)));
+  return <View style={{ gap: 8 }}>
+    <ChoiceField label={label} value={value} options={options} onChange={onChange} game />
+    <Toggle label={`Show all ${origin ? 'origin' : 'current'} games`} value={all} onChange={setAll} />
+    {!!pokemon.species && <PixelText style={ui.muted}>Compatible games appear first. Show all games to record other history.</PixelText>}
+    {!!pokemon.species && !!value && !compatible.has(value) && <PixelText style={{ color: colors.warningInk, fontSize: 14 }}>
+      This {origin ? 'origin' : 'current'} game is outside the compatible list for this species or form. Check the recorded details.
+    </PixelText>}
+  </View>;
+}
 export function PokemonEditor({
   record,
   boxID,
@@ -532,6 +551,12 @@ export function PokemonEditor({
     [met, setMet] = useState<number | undefined>(draft.metLevel),
     [size, setSize] = useState<number | undefined>(draft.sizeScale);
   const [error, setError] = useState('');
+  const [draftReady, setDraftReady] = useState(false), [restored, setRestored] = useState(false),
+    [draftError, setDraftError] = useState(''), [blockedDraft, setBlockedDraft] = useState(false);
+  const initial = useRef(draft);
+  const draftKey = `editor.${encodeURIComponent(state.collection!.id)}.${record ? `record.${encodeURIComponent(record.id)}` : `new.${encodeURIComponent(boxID)}.${competitive ? 'competitive' : 'ribbon'}`}`;
+  const baseRevision = useRef(record?.version.revision ?? null).current;
+  const finished = useRef(false);
   const [marks, setMarks] = useState(false);
   const species = baseSpeciesID(draft.species);
   const forms = formOptions(species);
@@ -541,6 +566,46 @@ export function PokemonEditor({
     metLevel: met,
     sizeScale: size,
   };
+  const latestDraft = useRef(p);
+  latestDraft.current = p;
+  useEffect(() => {
+    let active = true;
+    loadEditorDraft(draftKey).then(saved => {
+      if (!active || !saved) return;
+      if (!record && state.collection!.records.some(r => r.id === saved.pokemon.id)) {
+        setBlockedDraft(true); setDraftError('This draft has already been added to your collection. Discard the temporary draft to start another Pokémon.'); return;
+      }
+      if (saved.baseRevision !== baseRevision || record && saved.pokemon.id !== record.id) {
+        setBlockedDraft(true);
+        setDraftError('An earlier draft belongs to an older saved version. Discard it before editing this version.');
+        return;
+      }
+      setDraft({ ...initial.current, ...saved.pokemon }); setLevel(saved.pokemon.currentlevel); setMet(saved.pokemon.metLevel); setSize(saved.pokemon.sizeScale);
+      setRestored(true);
+    }).catch(e => { if (active) { setBlockedDraft(true); setDraftError(String(e instanceof Error ? e.message : e)); } })
+      .finally(() => { if (active) setDraftReady(true); });
+    return () => { active = false; };
+  }, [draftKey]);
+  useEffect(() => {
+    if (!draftReady || blockedDraft || finished.current) return;
+    if (JSON.stringify(p) === JSON.stringify(initial.current)) return;
+    storeEditorDraft(draftKey, { version: 1, baseRevision, pokemon: p }).catch(() =>
+      setDraftError('This draft could not be stored on this device. Keep the editor open and save your Pokémon.'));
+  }, [draft, level, met, size, draftReady, blockedDraft, draftKey]);
+  const closeEditor = async () => {
+    if (draftReady && !blockedDraft && !finished.current && JSON.stringify(latestDraft.current) !== JSON.stringify(initial.current)) {
+      try { await storeEditorDraft(draftKey, { version: 1, baseRevision, pokemon: latestDraft.current }); }
+      catch { setDraftError('Draft storage failed. Save your Pokémon, or use Discard draft to close without it.'); return; }
+    }
+    onClose();
+  };
+  const discardDraft = async () => {
+    try {
+      finished.current = true;
+      await storeEditorDraft(draftKey, null);
+      onClose();
+    } catch { finished.current = false; setDraftError('Could not discard this draft. Please try again.'); }
+  };
   const update = <K extends keyof PokemonDetails>(
     key: K,
     val: PokemonDetails[K],
@@ -549,29 +614,45 @@ export function PokemonEditor({
     !p.currentgame || compatibleGames(p, false).includes(p.currentgame);
   const transfer = transferCheck(p.currentgame, p);
   const save = async () => {
+    if (!draftReady || blockedDraft) return;
     setError('');
     const result = record
-      ? await state.edit(record.id, p, record.version.revision)
+      ? await state.edit(record.id, p, baseRevision!)
       : await state.add(p, boxID);
-    if (result) onClose();
+    if (result) {
+      finished.current = true;
+      try { await storeEditorDraft(draftKey, null); }
+      catch { setDraftError('Pokémon saved, but its temporary draft could not be cleared. Discard it before adding another.'); return; }
+      onClose();
+    }
     else setError('Could not save. Check the details below and try again.');
   };
+  if (!draftReady || blockedDraft) return <EditorSheet title={record ? 'Edit Pokémon' : 'Add Pokémon'} onClose={closeEditor}>
+    <PixelText accessibilityRole={blockedDraft ? 'alert' : undefined}>{draftError || 'Checking for an unfinished draft…'}</PixelText>
+    {blockedDraft && <Button onPress={discardDraft}>Discard draft</Button>}
+  </EditorSheet>;
   return (
     <EditorSheet
       title={record ? 'Edit Pokémon' : 'Add Pokémon'}
-      onClose={onClose}
+      onClose={closeEditor}
       confirm={{
         title: record ? 'Save' : 'Add',
         onPress: save,
-        disabled: state.busy || !draft.species,
+        disabled: state.busy || !draft.species || !draftReady || blockedDraft || finished.current,
       }}
     >
+      {!draftReady && <PixelText>Checking for an unfinished draft…</PixelText>}
+      {restored && <PixelText accessibilityLiveRegion="polite">Unfinished draft restored.</PixelText>}
+      {!!draftError && <PixelText accessibilityRole="alert" style={{ color: colors.warningInk }}>{draftError}</PixelText>}
+      <Button disabled={!draftReady || state.busy} onPress={discardDraft}>Discard draft</Button>
+      <PixelText style={ui.muted}>Unfinished edits are kept on this device until saved or discarded.</PixelText>
       <View style={[ui.row, { backgroundColor: colors.paper, padding: 12 }]}>
         {draft.species && <Sprite pokemon={p} size={width < 400 ? 64 : 88} />}
         <View style={{ flex: 1 }}>
           <PixelText style={{ fontSize: 26 }}>
             {draft.species ? displayName(draft) : 'Your next companion'}
           </PixelText>
+          {!!draft.nickname && !!draft.species && draft.nickname !== speciesLabel(p) && <PixelText style={ui.muted}>{speciesLabel(p)}</PixelText>}
           <PixelText style={ui.muted}>
             {record
               ? 'Identity and earning history stay with this Pokémon.'
@@ -597,9 +678,9 @@ export function PokemonEditor({
         <ChoiceField
           key={species}
           label="Form"
-          value={draft.species}
+          value={canonicalSpeciesID(draft.species)}
           options={forms}
-          onChange={(id) => setDraft((old) => ({
+          onChange={(id) => setDraft((old) => canonicalSpeciesID(old.species) === id ? old : ({
             ...old,
             species: id,
             gmax: false,
@@ -649,19 +730,18 @@ export function PokemonEditor({
         />
       )}
       <PixelText style={ui.heading}>Journey</PixelText>
-      <ChoiceField
+      <PokemonGameField
         label="Current game"
         value={draft.currentgame}
-        options={gameOptions}
+        pokemon={p}
         onChange={(v) => update('currentgame', v)}
-        game
       />
-      <ChoiceField
+      <PokemonGameField
         label="Origin game"
         value={draft.origingame}
-        options={gameOptions}
+        pokemon={p}
         onChange={(v) => update('origingame', v)}
-        game
+        origin
       />
       <Toggle
         label="Met level known"
@@ -800,7 +880,7 @@ export function PokemonEditor({
       {!!error && (
         <PixelText accessibilityRole="alert">{state.error || error}</PixelText>
       )}
-      <Button primary disabled={state.busy || !draft.species} onPress={save}>
+      <Button primary disabled={state.busy || !draft.species || !draftReady || blockedDraft || finished.current} onPress={save}>
         {record ? 'Save Pokémon' : 'Add to box'}
       </Button>
     </EditorSheet>

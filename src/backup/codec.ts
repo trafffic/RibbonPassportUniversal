@@ -221,6 +221,9 @@ function normalize(entry: Obj, id: string): Pokemon {
     currentlevel: level,
     title: textValue(entry.title, 'None'),
     titleText: textValue(entry.titleText),
+    ...(entry.ribbonGoal === null ? { ribbonGoal: null } : object(entry.ribbonGoal) &&
+      typeof entry.ribbonGoal.award === 'string' && typeof entry.ribbonGoal.game === 'string'
+      ? { ribbonGoal: { award: entry.ribbonGoal.award, game: entry.ribbonGoal.game } } : {}),
     ribbons: [...entry.ribbons],
     visits,
     earnedGames: mapStrings(entry.earnedGames),
@@ -591,6 +594,7 @@ export function validateCollection(value: Collection): Collection {
     'showdownSet',
     'source',
     'communitySourceIDs',
+    'ribbonGoal',
     ...editableFields,
   ]);
   const indexes = new Set<number>();
@@ -705,7 +709,9 @@ export function exportSource(collection: Collection): string {
     const originalRibbons = entry.ribbons as string[];
     const originalProjection = normalize(entry, record.id);
     for (const [key, val] of Object.entries(record.changes)) {
-      if (key === 'earnedGames' || key === 'earnedGenerations') {
+      if (key === 'ribbonGoal' && object(val)) {
+        entry[key] = { ...(object(entry[key]) ? entry[key] : {}), ...val };
+      } else if (key === 'earnedGames' || key === 'earnedGenerations') {
         // Keep unsupported map entries; delete only awards explicitly removed.
         const original = object(entry[key]) ? (entry[key] as Obj) : {};
         const map = { ...original };

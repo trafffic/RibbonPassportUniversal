@@ -1,5 +1,6 @@
 import { catalog, ruleData as data, generation, sortGames, sortAwards, recordedVisits } from './catalog';
 import type { Pokemon } from './model';
+import { canonicalSpeciesID } from './species';
 
 export const optionalSizeMarks = ['mini-mark', 'jumbo-mark'];
 export const postCaptureMarks = ['partner-mark', 'gourmand-mark', 'itemfinder-mark', ...optionalSizeMarks];
@@ -16,7 +17,7 @@ export function reachableGroups(game: string): Set<string> {
   return seen;
 }
 export function compatibleGames(p: Pokemon, reachableOnly = true): string[] {
-  const info = data.species[p.species];
+  const info = data.species[canonicalSpeciesID(p.species)];
   if (!info) return [];
   const current = p.currentgame || p.origingame, groups = reachableGroups(current);
   const bdsp = ['bd', 'sp'];
@@ -43,7 +44,7 @@ export function journeyGameChoices(p: Pokemon): string[] {
   });
 }
 export function unavailableReason(award: string, game: string, p: Pokemon, historical = false, checkCompatibility = true): string | null {
-  const rule = data.awards[award], info = data.species[p.species];
+  const rule = data.awards[award], info = data.species[canonicalSpeciesID(p.species)];
   if (!rule || !info) return 'Choose a Pokémon';
   if (!historical && award === 'jumbo-mark' && p.sizeScale !== 255) return 'Requires maximum size (255). Confirm size in Edit Pokémon.';
   if (!historical && award === 'mini-mark' && p.sizeScale !== 0) return 'Requires minimum size (0). Confirm size in Edit Pokémon.';

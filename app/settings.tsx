@@ -10,6 +10,7 @@ import { useTheme } from '../src/ui/theme';
 import { Shell } from '../src/ui/Shell';
 import { Button, Panel, PixelText, Art } from '../src/ui/primitives';
 import { BackupPanel } from '../src/ui/BackupPanel';
+import { BackupStatus } from '../src/ui/BackupStatus';
 import { EditorSheet } from '../src/ui/Editors';
 import { CommunityLink, SourceLinks } from '../src/ui/Community';
 const rarity =
@@ -80,6 +81,7 @@ export default function Settings() {
       <PixelText style={ui.heading}>Collection</PixelText>
       <Button onPress={() => setSheet('App backup')}>App backup</Button>
       <Button onPress={() => router.push('/recovery')}>Recovery history</Button>
+      {state.collection && <BackupStatus collection={state.collection} refresh={sheet} />}
       <Button onPress={state.reload}>Reload saved collection</Button>
       <PixelText style={{ fontSize: 13, color: colors.muted }}>
         Your collection lives only on this device. Export a backup regularly.

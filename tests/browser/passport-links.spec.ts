@@ -18,6 +18,10 @@ test('short passport links survive refresh, browser Back and offline reload', as
   await expect(page).toHaveURL(link);
   await expect(page.getByText('Gardevoir', { exact: true }).filter({ visible: true }).first()).toBeVisible();
   await mainTab(page, 'Ribbons').click();
+  await expect(page).toHaveURL(/\/$/);
+  // Desktop retains the previous route's PC during navigation. Wait for the
+  // collection preview before resolving a slot shared by both screens.
+  if (page.viewportSize()!.width >= 1100) await expect(page.getByTestId('classic-passport')).toBeVisible();
   await button(page, 'Select Sparky').click();
   await page.goto(link);
   await expect(page.getByText('Gardevoir', { exact: true }).filter({ visible: true }).first()).toBeVisible();

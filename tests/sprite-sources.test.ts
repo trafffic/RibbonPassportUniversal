@@ -35,3 +35,14 @@ test('Gen 9 species add the PokeAPI sprite before the fallback', () => {
   assert.ok(s.some((u) => /PokeAPI.*\/906\.png$/.test(u)));
   assert.equal(spriteSources(poke({ species: 'sprigatito', shiny: true })).some((u) => /shiny\/906\.png$/.test(u)), true);
 });
+
+test('form aliases use the correct provider paths without rewriting the Pokémon', () => {
+  const p = poke({ species: 'pikachu-alola', gender: 'female', shiny: true });
+  assert.equal(spritePath(p), 'shiny/female/pikachu-alola-cap.png');
+  assert.ok(spriteSources(p).some(url => url.endsWith('/shiny/pikachu-alola-cap.png')));
+  assert.ok(spriteSources(p).at(-1)?.endsWith('/pikachu-alola.png'));
+  assert.equal(p.species, 'pikachu-alola');
+  assert.equal(spritePath(poke({ species: 'pikachu-cosplay-rockstar' })), 'regular/pikachu-rock-star.png');
+  assert.equal(spritePath(poke({ species: 'calyrex-ice' })), 'regular/calyrex-ice-rider.png');
+  assert.equal(spritePath(poke({ species: 'farfetchu2019d-galar' })), 'regular/farfetchd-galar.png');
+});

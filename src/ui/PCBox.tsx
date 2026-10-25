@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   View,
-  TextInput,
   useWindowDimensions,
 } from 'react-native';
 import * as Crypto from 'expo-crypto';
@@ -16,6 +15,10 @@ import { usePassportLink } from './usePassportLink';
 import { displayName, displayedAwards, gameName } from '../domain/catalog';
 import type { Pokemon } from '../domain/model';
 import { createBox } from '../domain/organisation';
+import { sortBoxByDex } from '../domain/collection-tools';
+import { speciesLabel } from '../domain/species';
+import { CollectionSearch } from './CollectionSearch';
+import { RibbonGoal } from './RibbonGoal';
 import { deletePokemon } from '../domain/passport';
 import { exportRibbonsGuide } from '../backup/codec';
 import { saveBackup } from '../backup/files';
@@ -96,8 +99,8 @@ export function PCBox({
     [sheet, setSheet] = useState(''),
     [moving, setMoving] = useState(''),
     [party, setParty] = useState(classic),
-    [search, setSearch] = useState(''),
     [finding, setFinding] = useState(false),
+    [sortUndo, setSortUndo] = useState(''),
     [exportError, setExportError] = useState('');
   useEffect(() => {
     let live = true;
@@ -654,6 +657,7 @@ export function PCBox({
                 <PixelText numberOfLines={1} style={{ fontSize: 19 }}>
                   {displayName(p)}
                 </PixelText>
+                {!!p.nickname && p.nickname !== speciesLabel(p) && <PixelText numberOfLines={2} style={{ fontSize: 12, color: colors.muted }}>{speciesLabel(p)}</PixelText>}
                 <View
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                 >
@@ -665,6 +669,7 @@ export function PCBox({
                     Lv. {p.currentlevel} · {gameName(p.currentgame)}
                   </PixelText>
                 </View>
+                {kind === 'ribbon' && <RibbonGoal key={p.id} pokemon={p} compact />}
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -791,30 +796,13 @@ export function PCBox({
           Select a destination slot. Occupied slots swap.
         </PixelText>
       )}
+      {!!sortUndo && state.canUndo && c.operations.at(-1)?.id === sortUndo && <Button label="Undo box sort" onPress={async () => {
+        if (await state.undo()) setSortUndo('');
+      }}>Undo box sort</Button>}
       {finding && (
-        <>
-          <TextInput
-            accessibilityLabel="Search Pokémon"
-            style={ui.input}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Find Pokémon"
-            placeholderTextColor={colors.muted}
-          />
-          <View style={ui.row}>
-            {records
-              .filter((r) =>
-                (displayName(r.pokemon) + ' ' + r.pokemon.species)
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((r) => (
-                <Button key={r.id} onPress={() => state.select(r.id)}>
-                  {displayName(r.pokemon)}
-                </Button>
-              ))}
-          </View>
-        </>
+        <EditorSheet title="Find Pokémon" close="Done" onClose={() => setFinding(false)}>
+          <CollectionSearch records={records} onSelect={async id => { if (await state.select(id)) setFinding(false); }} />
+        </EditorSheet>
       )}
       {[
         'Options',
@@ -928,6 +916,14 @@ export function PCBox({
             </>
           ) : sheet === 'Box options' ? (
             <>
+              <MenuItem disabled={state.busy || !!moving || !box.slots.some(Boolean)} onPress={async () => {
+                let revision = '';
+                if (await state.mutate((c, ctx) => {
+                  const sorted = sortBoxByDex(c, box.id, ctx);
+                  if (sorted !== c) revision = ctx.id;
+                  return sorted;
+                }, 'Box sorted by Pokédex number. You can undo this change.')) { setSortUndo(revision); setSheet(''); }
+              }}>Sort box by Pokédex number</MenuItem>
               <MenuItem onPress={() => setSheet('Box settings')}>
                 Rename box
               </MenuItem>

@@ -80,6 +80,7 @@ export function createSample(): Collection {
 }
 
 const extras = [
+  'ribbonGoal',
   'honors',
   'journal',
   'moveNotes',

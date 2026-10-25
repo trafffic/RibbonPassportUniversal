@@ -16,6 +16,7 @@ import {
   type RecoveryEntry,
 } from '../domain/recovery';
 import { awardName, gameName } from '../domain/catalog';
+import { speciesLabel } from '../domain/species';
 import { useCollection } from '../state/CollectionProvider';
 import { saveBackup } from '../backup/files';
 import { exportUniversal } from '../backup/codec';
@@ -405,7 +406,7 @@ function RecoveryVersion({
       </Button>
       {details && p && (
         <Panel>
-          <Row label="Species" value={p.species} />
+          <Row label="Species / form" value={speciesLabel(p)} />
           <Row label="Nickname" value={p.nickname} />
           <Row label="Level" value={String(p.currentlevel)} />
           <Row label="Current game" value={gameName(p.currentgame)} />

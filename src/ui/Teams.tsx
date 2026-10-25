@@ -27,13 +27,12 @@ import {
   statValues,
 } from '../domain/showdown';
 import {
-  catalog,
   displayName,
   gameName,
   sortGames,
   ruleData,
 } from '../domain/catalog';
-const speciesName = (id: string) => catalog.pokemon[id]?.name ?? id;
+import { speciesLabel } from '../domain/species';
 import {
   applyBuildVersion,
   diffBuild,
@@ -356,7 +355,7 @@ function TeamNotebook({ team }: { team: Team }) {
             </PixelText>
             {v.members.map((m) => (
               <View key={m.id} style={ui.row}>
-                <PixelText>{m.nickname || m.species} ·</PixelText>
+                <PixelText>{m.nickname ? `${m.nickname} · ${speciesLabel({ species: m.species, gmax: !!m.gmax })}` : speciesLabel({ species: m.species, gmax: !!m.gmax })} ·</PixelText>
                 <HeldItem item={m.build.item} />
               </View>
             ))}
@@ -490,7 +489,7 @@ export function Build({
         <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
           <PixelText style={{ fontSize: 27 }}>{displayName(p)}</PixelText>
           <PixelText style={{ fontSize: 13, color: colors.muted }}>
-            {`${speciesName(p.species)} · Lv. ${p.currentlevel}`}
+            {`${speciesLabel(p)} · Lv. ${p.currentlevel}`}
           </PixelText>
           <HeldItem item={b.item} size={16} />
         </View>

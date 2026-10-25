@@ -40,6 +40,8 @@ import {
 } from "./primitives";
 import { ChoiceField, EditorSheet, Field } from "./Editors";
 import { bubblePlacement, type Rect } from "./bubble-placement";
+import { speciesLabel } from '../domain/species';
+import { RibbonGoal } from './RibbonGoal';
 export function PassportHero({ pokemon: p, centered = false }: { pokemon: Pokemon; centered?: boolean }) {
   const { colors, dark } = useTheme();
   const titleAward = p.title && p.title !== 'None' && catalog.ribbons[p.title] ? p.title : undefined;
@@ -59,6 +61,7 @@ export function PassportHero({ pokemon: p, centered = false }: { pokemon: Pokemo
           {p.shiny && <Art name="shiny-dark" label="Shiny" size={17} />}
           <ConsoleIcon game={p.origingame} />
         </View>
+        {!!p.nickname && p.nickname !== speciesLabel(p) && <PixelText style={{ fontSize: 14, color: colors.muted }}>{speciesLabel(p)}</PixelText>}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
           {titleAward && <Art name={'award-' + titleAward} size={20} label={`Title ribbon: ${awardName(titleAward)}`} />}
         <PixelText
@@ -78,6 +81,7 @@ export function PassportHero({ pokemon: p, centered = false }: { pokemon: Pokemo
         <PixelText style={{ fontSize: 13, color: colors.muted }}>
           Lv. {p.currentlevel} · {displayedAwards(p).length} awards
         </PixelText>
+        {!p.showdownSet && <RibbonGoal key={p.id} pokemon={p} />}
       </View>
     </View>
   );

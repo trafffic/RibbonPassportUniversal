@@ -1,6 +1,7 @@
 import type { Collection, Pokemon, ShowdownSet } from './model';
 import type { ChangeContext } from './collection';
 import { catalog } from './catalog';
+import { showdownSpeciesName } from './species';
 import { speciesID } from './community';
 import { blankPokemon, addPokemon, createBox } from './organisation';
 export function parseShowdown(
@@ -88,9 +89,10 @@ export function exportShowdown(pokemon: Pokemon[]): string {
         throw new Error(
           'A recognised species and battle build are required for Showdown export.',
         );
+      const name = showdownSpeciesName(p.species);
       const species =
-          catalog.pokemon[p.species]!.name +
-          (p.gmax && !/-Gmax$/i.test(catalog.pokemon[p.species]!.name)
+          name +
+          (p.gmax && !/-Gmax$/i.test(name)
             ? '-Gmax'
             : ''),
         header =

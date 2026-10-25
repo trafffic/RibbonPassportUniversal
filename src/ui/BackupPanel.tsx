@@ -8,6 +8,7 @@ import { chooseBackup, saveBackup } from '../backup/files';
 import type { Collection } from '../domain/model';
 import { Panel, PixelText, Button } from './primitives';
 import { ui, colors, useTheme } from './theme';
+import { BackupStatus, noteCollectionExport } from './BackupStatus';
 export function BackupPanel({ onClose }: { onClose: () => void }) {
   const { colors, ui, dark } = useTheme();
   const state = useCollection();
@@ -65,6 +66,11 @@ export function BackupPanel({ onClose }: { onClose: () => void }) {
                 exportUniversal(state.collection!),
                 'RibbonPassport-Universal.json',
               );
+              try { await noteCollectionExport(state.collection!); }
+              catch {
+                setMessage('Universal backup prepared. Its status could not be recorded on this device.');
+                return;
+              }
               setMessage(
                 'Universal backup prepared. It includes your full collection and original backup.',
               );
@@ -101,6 +107,7 @@ export function BackupPanel({ onClose }: { onClose: () => void }) {
           Export original format
         </Button>
       </View>
+      {state.collection && <BackupStatus collection={state.collection} refresh={message} />}
       <PixelText style={{ fontSize: 15, color: colors.muted }}>
         Universal backups preserve local history and revisions. App-format
         exports include box layouts. Guide-format exports include box names and

@@ -213,6 +213,7 @@ export function recoveryChanges(c: Collection, e: RecoveryEntry): string[] {
       out.push('Restore the saved Move Dex notes.');
     if (!same(now.savedBuilds, old.savedBuilds))
       out.push('Restore the saved build notebook.');
+    if (!same(now.ribbonGoal, old.ribbonGoal)) out.push('Restore the saved ribbon goal.');
     if (!same(now.showdownSet, old.showdownSet))
       out.push('Restore the saved competitive build.');
     if (now.title !== old.title || now.titleText !== old.titleText)

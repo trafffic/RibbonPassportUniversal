@@ -26,6 +26,14 @@ Open http://127.0.0.1:8081. The development server is not the offline test targe
 
 ## Try the app
 
+The Pokémon editor lists species once in National Pokédex order, then offers a separate form picker. Duplicate provider aliases share one readable form name; existing saved IDs stay intact. Passports and storage show the species/form beneath a different nickname. Cap, cosplay and rider aliases resolve to the matching sprite paths, with a non-female sprite fallback when needed.
+
+Current/origin game pickers suggest compatible games first. **Show all current games** and **Show all origin games** keep other recorded history available, with an inline explanation for an incompatible selection. Unfinished Pokémon edits automatically resume on this device when the editor reopens; **Discard draft** closes and removes the temporary draft. Drafts are scoped to their collection and record (or destination box when adding); an older draft cannot overwrite a newer saved record.
+
+**Collection options → Find Pokémon** searches nicknames, species, forms and exact Pokédex numbers, with combined shiny, species and current-game filters. **Box options → Sort box by Pokédex number** compacts the current box in numeric order; **Undo box sort** is available on desktop and phone. The selected Pokémon's **Set ribbon goal** action pins an unowned ribbon or earnable mark and an earning game. The goal appears in storage and the passport, shows completion once recorded, and survives backups and recovery.
+
+Settings and App backup show the last full collection export prepared on this device and whether collection content has changed since. Selection/navigation do not count as content edits. This records export preparation: the app cannot confirm that a browser download or native share was ultimately kept. Destination-specific and original-format exports do not mark the full collection as backed up.
+
 Passport URLs use a stable seven-character alias instead of the full internal Pokémon ID, and omit the default Overview query parameter. Existing full-ID links still open the same local record and redirect to its short URL. These links refer to this browser's collection; they do not publish Pokémon or their notes.
 
 1. A fresh install starts empty, like the iPhone app: **Add Pokémon**, **Import ribbons.guide backup** or **Try demo** (Competitive offers **Add manually**, **Import Showdown team** and **Community teams**). Try demo adds six authored Pokémon and a Demo Ribbon Team; existing collections are never replaced on update. Select a Pokémon in **Box 01**. On desktop, click its **Passport preview** to enter Passport Studio; phones use the **Passport** action under the PC. The original sprites fit both dimensions of their frames.
